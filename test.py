@@ -64,9 +64,7 @@ if __name__ == "__main__":
 
 	except KeyboardInterrupt:
 		Logger.Info("Keyboard interrupt detected. Shutting down.")
-		import rpdb2
-		rpdb2.start_embedded_debugger("foobar")
-		#bot.stop()
+		bot.stop()
 
 	except Exception, e:
 		Logger.Fatal("Fatal error: %s" % e)

@@ -1,5 +1,5 @@
 from models import Network, Channel, IRCMessage
-from lib.net.netsocket import AsyncBufferedNetSocket
+from lib.net.netsocket import AsyncBufferedNetSocket, ConnectionFailedException
 from lib.logger import Logger
 from lib.util import IRCCommandDispatcher
 
@@ -24,6 +24,12 @@ class IRCController:
 		self.name = None
 		self.ident = None
 
+		# Automatically auto connect unless we say otherwise
+		self.autoreconnect = True
+
+		self.rejoin_time = 10
+		self.reconnect_time = 10
+
 		## Callback when a message is received: MessageHandler(controllers.MessageController)
 		self.MessageHandler = None
 
@@ -43,14 +49,13 @@ class IRCController:
 		# Nickchanges, own and others
 
 	def schedule_rejoin(self, channel):
-
-		# Schedule bot to rejoin channel in 10 seconds
+		# Schedule bot to rejoin channel
 		Logger.Info("Scheduling rejoin of channel " + channel.name)
 		kwargs = {
 			"channel": channel.name,
 			"key": channel.password,
 		}
-		self.eventcontroller.register_timer(10, self.join, kwargs = kwargs)
+		self.eventcontroller.register_timer(self.rejoin_time, self.join, kwargs = kwargs)
 
 	def event_quit(self, irc):
 		for chan in self.channels:
@@ -168,6 +173,15 @@ class IRCController:
 	def _handle_disconnect(self, socket):
 		Logger.Info("IRC connection closed")
 
+		# Flag all channels as not joined
+		for channel in self.channels:
+			channel.is_joined = False
+
+		# If we want to reconnect, automatically schedule a reconnect 
+		if self.autoreconnect:
+			Logger.Info("Will reconnect in %d seconds..." % self.reconnect_time)
+			self.eventcontroller.register_timer(self.reconnect_time, self.connect)
+
 	def join_all_channels(self):
 		for channel in self.channels:
 			if not channel.is_joined:
@@ -183,6 +197,9 @@ class IRCController:
 		if self.currentserverindex == len(self.servers):
 			self.currentserverindex = 0
 
+		# We were asked to connect, so we want to automatically reconnect if disconnected
+		self.autoreconnect = True
+
 		server = self.servers[self.currentserverindex]
 		self.currentserverindex += 1
 
@@ -195,9 +212,17 @@ class IRCController:
 		self.connection.OnDisconnect = self._handle_disconnect
 		self.connection.OnData       = self._handle_data
 
-		self.connection.connect()
+		try:
+			self.connection.connect()
+		except ConnectionFailedException, e:
+			# We failed to connect, schedule a retry
+			Logger.Error("Failed to connect to %s (%s), retrying in %s seconds..." % (self.ircnet, server, self.reconnect_time))
+			self.eventcontroller.register_timer(self.reconnect_time, self.connect)
+
 
 	def disconnect(self):
+		# We were asked to disconnect, so we don't want to autoreconnect
+		self.autoreconnect = False
 		self.connection.disconnect()
 
 	def set_nick(self, nick):
