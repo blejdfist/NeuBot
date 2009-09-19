@@ -6,6 +6,7 @@ class Channel:
 		self.name = name
 		self.is_joined = False
 		self.who = []
+		self.topic = None
 
 	def __repr__(self):
 		extra = []
@@ -24,13 +25,15 @@ class Channel:
 		if not isinstance(user, IRCUser):
 			raise Exception("add_user: Must send IRCUser instance")
 
-		self.who.append(user)
+		if self.who.count(user) == 0:
+			self.who.append(user)
 
 	def del_user(self, user):
 		if not isinstance(user, IRCUser):
 			raise Exception("del_user: Must send IRCUser instance")
 
-		self.who.remove(user)
+		if self.who.count(user) != 0:
+			self.who.remove(user)
 
 	def num_users(self):
 		return len(self.who)

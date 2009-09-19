@@ -21,19 +21,22 @@ import re
 from ircuser import IRCUser
 
 class IRCMessage:
-	regexp_message = re.compile("^:(.*?) (.*?) (.*?) [:]{0,1}(.*)$")
+	regexp_usermsg = re.compile(":^(.*?)!(.*?)@(.*?) (.*?) (.*?) [:]{0,1}(.*)$")
+	regexp_svrmsg  = re.compile("^:(.*?) (.*?) (.*?) [:]{0,1}(.*)$")
 	regexp_server  = re.compile("^:(.*?) (.*?) [:]{0,1}(.*)$")
 	regexp_other   = re.compile("^([A-Za-z]*?) :(.*)$")
 
-	def __init__(self, msg):
+	def __init__(self, msg, usercontroller = None):
 		self.raw_msg = msg
 		self.source = None
 		self.command = None
 		self.destination = None
 		self.params = None
+		self.usercontroller = usercontroller
 
 		regexCallbacks = [
-			(IRCMessage.regexp_message, self._parse_message),
+			(IRCMessage.regexp_usermsg, self._parse_usermsg),
+			(IRCMessage.regexp_svrmsg,  self._parse_servermessage),
 			(IRCMessage.regexp_server,  self._parse_server),
 			(IRCMessage.regexp_other,   self._parse_other),
 		]
@@ -50,19 +53,31 @@ class IRCMessage:
 		return self.raw_msg
 
 	def _parse_server(self, msg):
-		print "Server %s" % (msg,)
-		self.source = IRCUser(msg[0])
+		# If we have a usercontroller, use it
+		if self.usercontroller:
+			self.source = self.usercontroller.get_user(msg[0])
+		else:
+			self.source = IRCUser(msg[0])
 		self.command = msg[1]
 		self.params = msg[2]
 
-	def _parse_message(self, msg):
-		print "Message %s" % (msg,)
-		self.source = IRCUser(msg[0])
+	def _parse_usermsg(self, msg):
+		# If we have a usercontroller, use it
+		if self.usercontroller:
+			self.source = self.usercontroller.get_user(msg[0])
+		else:
+			self.source = IRCUser(msg[0])
+		self.command = msg[1]
+		self.destination = msg[2]
+		self.params = msg[3]
+
+	def _parse_servermessage(self, msg):
+		# If we have a usercontroller, use it
+		self.source = msg[0]
 		self.command = msg[1]
 		self.destination = msg[2]
 		self.params = msg[3]
 
 	def _parse_other(self, msg):
-		print "Other %s" % (msg,)
 		self.command = msg[0]
 		self.params = msg[1]

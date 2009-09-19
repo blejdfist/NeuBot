@@ -1,16 +1,20 @@
-from models import Network, Channel, IRCMessage
+from models import Network, Channel, IRCMessage, IRCUser
+from controllers import UserController
 from lib.net.netsocket import AsyncBufferedNetSocket, ConnectionFailedException
 from lib.logger import Logger
 from lib.util import IRCCommandDispatcher
 
 import threading
 import ircdef
+import re
+import random
 
 class IRCController:
 	def __init__(self, eventcontroller):
 		self.connected = False
 		self.connection = None
 		self.eventcontroller = eventcontroller
+		self.usercontroller = UserController()
 
 		# Attributes
 		self.ircnet = None
@@ -24,10 +28,17 @@ class IRCController:
 		self.name = None
 		self.ident = None
 
+		self.pendingnick = None
+
+		# Detected users
+		self.users = []
+
 		# Automatically auto connect unless we say otherwise
 		self.autoreconnect = True
+		self.autoreclaimnick = True
 
 		self.rejoin_time = 10
+		self.reclaim_time = 10
 		self.reconnect_time = 10
 
 		## Callback when a message is received: MessageHandler(controllers.MessageController)
@@ -41,12 +52,20 @@ class IRCController:
 		self.eventcontroller.register_event("PART",     self.event_part)
 		self.eventcontroller.register_event("KICK",     self.event_kick)
 		self.eventcontroller.register_event("QUIT",     self.event_quit)
+		self.eventcontroller.register_event("NICK",     self.event_nick)
+		self.eventcontroller.register_event("TOPIC",    self.event_topic)
 
-		# Nicklist when joining channel
-		#:irc.foonet.com 353 NeuBot = #test :NeuBot jim 
-		#:irc.foonet.com 366 NeuBot #test :End of /NAMES list.
+		self.eventcontroller.register_event(ircdef.RPL_TOPIC,    self.event_topic_reply)
+		self.eventcontroller.register_event(ircdef.RPL_NAMREPLY, self.event_channel_names)
+		self.eventcontroller.register_event(ircdef.RPL_WHOREPLY, self.event_who_reply)
 
-		# Nickchanges, own and others
+	def schedule_reclaimnick(self):
+		# Schedule bot to rejoin channel
+		Logger.Info("Scheduling reclaim of nick")
+		kwargs = {
+			"nick": self.nick,
+		}
+		self.eventcontroller.register_timer(self.reclaim_time, self.set_nick, kwargs = kwargs)
 
 	def schedule_rejoin(self, channel):
 		# Schedule bot to rejoin channel
@@ -56,6 +75,44 @@ class IRCController:
 			"key": channel.password,
 		}
 		self.eventcontroller.register_timer(self.rejoin_time, self.join, kwargs = kwargs)
+
+	def event_topic(self, irc):
+		for channel in self.channels:
+			if channel.name == irc.message.destination:
+				channel.topic = irc.message.params
+
+	def event_topic_reply(self, irc):
+		match = re.match("^(.*?) :(.*)$", irc.message.params)
+		if not match:
+			return
+
+		chan_name, topic = match.groups()
+		for channel in self.channels:
+			if channel.name == chan_name:
+				channel.topic = topic
+				return
+
+	def event_nick(self, irc):
+		user = irc.message.source
+		new_nick = irc.message.params
+		user.change(nick = new_nick)
+
+	def event_who_reply(self, irc):
+		match = re.match("(.*?) (.*?) (.*?) (.*?) (.*?) (.*?) :[0-9]+ (.*)", irc.message.params)
+		if not match:
+			Logger.Warning("Invalid RPL_WHOREPLY received")
+			return
+
+		chan, ident, host, server, nick, modes, real_name = match.groups()
+		whostring = "%s!%s@%s" % (nick, ident, host)
+
+		user = self.usercontroller.get_user(whostring)
+
+		# Find the channel among the one we monitor
+		for channel in self.channels:
+			if channel.name == chan:
+				# Found, now add the user to that channel
+				channel.add_user(user)
 
 	def event_quit(self, irc):
 		for chan in self.channels:
@@ -82,6 +139,9 @@ class IRCController:
 			# We joined a channel
 			channel.is_joined = True
 			Logger.Debug("I joined " + channel_name)
+
+			# Send WHO-message to learn about the users in this channel
+			self.send_raw("WHO " + channel_name)
 		else:
 			# It was someone else
 			channel.add_user(who)
@@ -109,6 +169,29 @@ class IRCController:
 			# It was someone else
 			channel.del_user(who)
 			Logger.Debug("User %s parted %s" % (who.nick, channel_name))
+
+	def event_channel_names(self, irc):
+		match = re.match("([=\*@]) ([&#\+!]\S+) :(.*)", irc.message.params)
+		if not match:
+			Logger.Warning("Invalid RPL_NAMREPLY from server")
+			return
+
+		chan_type, chan_name, chan_users = match.groups()
+		#if chan_type == "@":   chan_type = "SECRET"
+		#elif chan_type == "*": chan_type = "PRIVATE"
+		#elif chan_type == "=": chan_type = "PUBLIC"
+
+		status = {
+			"@": "OP",
+			"+": "VOICE",
+		}
+
+		for nick in chan_users.split():
+			nick_status = "NORMAL"
+
+			if status.has_key(nick[0]):
+				nick_status = status[nick[0]]
+				nick = nick[1:]
 
 	def event_kick(self, irc):
 		channel_name = irc.message.destination
@@ -143,14 +226,37 @@ class IRCController:
 		self.pong_server(irc.message.params)
 
 	def event_nickinuse(self, irc):
-		print irc.message.params
+		if self.currentnick == None:
+			if len(self.altnicks) == 0:
+				altnick = self.nick
+
+				while altnick == self.nick:
+					pos = random.randint(0, len(self.nick)-1)
+					c = chr(random.randint(0x41, 0x51))
+					altnick = self.nick[0:pos-1] + c + self.nick[pos:]
+			else:
+				altnick = self.altnicks[self.currentaltnickindex]
+				self.currentaltnickindex += 1
+
+			if self.currentaltnickindex == len(self.altnicks):
+				self.currentaltnickindex = 0
+
+			self.set_nick(altnick)
+		else:
+			if self.autoreclaimnick:
+				self.schedule_reclaimnick()
 
 	def event_registration(self, irc):
+		self.currentnick = self.pendingnick
 		self.join_all_channels()
+
+		# We didn't get the nick we wanted
+		if self.currentnick != self.nick and self.autoreclaimnick:
+			self.schedule_reclaimnick()
 
 	def _handle_data(self, line, socket):
 		try:
-			message = IRCMessage(line)
+			message = IRCMessage(line, self.usercontroller)
 			self.eventcontroller.dispatch_event(self, message)
 
 			if self.MessageHandler:
@@ -163,12 +269,12 @@ class IRCController:
 			Logger.Warning("Exception: %s" % e)
 
 	def _handle_connect(self, socket):
-		# Determine nick
-		if self.currentnick is None:
-			self.currentnick = self.nick
+		self.connected = True
+
+		self.currentnick = None
 
 		self.send_raw("USER %s 9 * :%s" % (self.ident, self.name))
-		self.send_raw("NICK " + self.currentnick)
+		self.set_nick(self.nick)
 
 	def _handle_disconnect(self, socket):
 		Logger.Info("IRC connection closed")
@@ -226,7 +332,7 @@ class IRCController:
 		self.connection.disconnect()
 
 	def set_nick(self, nick):
-		self.currentnick = nick
+		self.pendingnick = nick
 
 		if self.is_connected():
 			self.send_raw("NICK " + nick)

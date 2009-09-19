@@ -1,5 +1,5 @@
 
-altnicks = ["NeuBot_", "NeuBot__"],
+altnicks = ["NeuBot_", "NeuBot__"]
 
 EFNet = {
 	"ircnet": "JimNet",

@@ -1,5 +1,3 @@
-from irccontroller import IRCController
-
 class IRCMessageController:
 	def __init__(self, irccontroller, ircmessage):
 		self.server = irccontroller

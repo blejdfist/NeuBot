@@ -185,7 +185,7 @@ class EventController:
 	# def callback(IRCMessageController)
 	# </pre>
 	def register_event(self, event, callback):
-		key = event.upper()
+		key = str(event).upper()
 		if not self.eventCallbacks.has_key(key):
 			self.eventCallbacks[key] = []
 
