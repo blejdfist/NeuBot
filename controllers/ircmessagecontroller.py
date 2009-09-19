@@ -4,7 +4,10 @@ class IRCMessageController:
 		self.message = ircmessage
 
 	def reply(self, message):
-		self.server.privmsg(self.message.destination, message)
+		if self.server.nick == self.message.destination:
+			self.server.privmsg(self.message.source.nick, message)
+		else:
+			self.server.privmsg(self.message.destination, message)
 
 	def reply_notice(self, message):
 		self.server.notice(self.message.destination, message)

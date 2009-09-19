@@ -59,6 +59,8 @@ class IRCController:
 		self.eventcontroller.register_event(ircdef.RPL_NAMREPLY, self.event_channel_names)
 		self.eventcontroller.register_event(ircdef.RPL_WHOREPLY, self.event_who_reply)
 
+		self.eventcontroller.register_command("test", self.command_test)
+
 	def schedule_reclaimnick(self):
 		# Schedule bot to rejoin channel
 		Logger.Info("Scheduling reclaim of nick")
@@ -75,6 +77,9 @@ class IRCController:
 			"key": channel.password,
 		}
 		self.eventcontroller.register_timer(self.rejoin_time, self.join, kwargs = kwargs)
+
+	def command_test(self, irc, params):
+		irc.reply("Command works. Arguments: %s" % params)
 
 	def event_topic(self, irc):
 		for channel in self.channels:
@@ -120,6 +125,9 @@ class IRCController:
 				chan.del_user(irc.message.source)
 			except:
 				pass
+
+		# Also remove user from global nick list
+		self.usercontroller.del_user(irc.message.source)
 
 	def event_join(self, irc):
 		who = irc.message.source

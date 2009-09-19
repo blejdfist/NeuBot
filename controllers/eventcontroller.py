@@ -21,6 +21,7 @@ from controllers import IRCMessageController
 
 import threading
 import traceback
+import re
 
 """
 	register_event(callback, event)
@@ -42,12 +43,14 @@ class EventController:
 		self.config = None
 		self.acl = None
 
+		self.command_prefix = "!"
+
 	## @brief Set the configuration to use
 	def SetConfig(self, config):
 		self.config = config
 
 	## @brief Set the ACL handler to use
-	def SetACL(self, acl):
+	def set_acl(self, acl):
 		self.acl = acl
 
 	## @brief Release callbacks registered by a module
@@ -143,34 +146,32 @@ class EventController:
 
 		self.commandCallbacks[key].append((callback.im_self, callback, privileged))
 
-
 	## @brief Dispatch a command
 	# @param irc IRCHandler instance
 	# @param msg IRCMessage instance
 	# @param command The command. Example: "mycommand"
 	# @param params Parameters to the command. Example: "param1 param2 param3"
-	def DispatchCommand(self, irc, msg, command, params):
+	def dispatch_command(self, irc, msg, command, params):
 		key = command.upper()
 
 		if self.commandCallbacks.has_key(key):
-			interface = ModuleInterface(irc, msg)
+			interface = IRCMessageController(irc, msg)
 
 			# Check access
-			masters = self.config.Bot["masters"]
-			masterAccess = reduce(lambda x,y : x or y, [msg.source.matches(hostmask) for hostmask in masters])
+			#masters = self.config.Bot["masters"]
+			#masterAccess = reduce(lambda x,y : x or y, [msg.source.matches(hostmask) for hostmask in masters])
 			
-
 			for (obj, callback, privileged) in self.commandCallbacks[key]:
 				try:
 					# This will abort instantly as soon as a command without access is found
-					if privileged and not masterAccess:
-						if not self.acl.CheckAccess(msg.source, command.lower()):
-							interface.Reply("Access denied")
-							return
+					#if privileged and not masterAccess:
+					#	if not self.acl.CheckAccess(msg.source, command.lower()):
+					#		interface.reply("Access denied")
+					#		return
 
 					callback(interface, params)
 				except Exception, e:
-					interface.Reply(e)
+					interface.reply(e)
 					print traceback.format_exc()
 					
 
@@ -195,7 +196,7 @@ class EventController:
 	# @param irc IRCController instance
 	# @param msg IRCMessage instance. IRCMessage.command contains the event.
 	def dispatch_event(self, irc, msg):
-		def dispatcher_thread(callback, interface):
+		def dispatcher_event_thread(callback, interface):
 			try:
 				callback(interface)
 			except Exception, e:
@@ -205,10 +206,19 @@ class EventController:
 		if not msg.command:
 			return
 
+		# Dispatch the event
 		key = msg.command.upper()
 		if self.eventCallbacks.has_key(key):
 			interface = IRCMessageController(irc, msg)
 
 			for (obj, callback) in self.eventCallbacks[key]:
-				thread = threading.Thread(target = dispatcher_thread, kwargs = {"callback": callback, "interface": interface})
+				thread = threading.Thread(target = dispatcher_event_thread, kwargs = {"callback": callback, "interface": interface})
 				thread.start()
+
+		# Check if it may be a command
+		if msg.command == "PRIVMSG":
+			match = re.match("^%s([^ ]+)(?:$| (.*)$)" % self.command_prefix, msg.params)
+			if match:
+				command, params = match.groups()
+				self.dispatch_command(irc, msg, command, params.split())
+
