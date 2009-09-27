@@ -15,9 +15,9 @@ class UserController:
 
 		try:
 			index = self.users.index(matching)
-			print "Returning old user %s" % self.users[index]
+			#print "Returning old user %s" % self.users[index]
 			return self.users[index]
 		except:
 			self.add_user(matching)
-			print "Adding new user %s" % matching
+			#print "Adding new user %s" % matching
 			return matching

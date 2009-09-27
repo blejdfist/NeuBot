@@ -4,7 +4,6 @@ from lib.net.netsocket import AsyncBufferedNetSocket, ConnectionFailedException
 from lib.logger import Logger
 from lib.util import IRCCommandDispatcher
 
-import threading
 import ircdef
 import re
 import random
@@ -41,13 +40,9 @@ class IRCController:
 		self.reclaim_time = 10
 		self.reconnect_time = 10
 
-		## Callback when a message is received: MessageHandler(controllers.MessageController)
-		self.MessageHandler = None
-
 		# Register events
 		self.eventcontroller.register_event("PING",     self.event_ping)
 		self.eventcontroller.register_event("433",      self.event_nickinuse)
-		self.eventcontroller.register_event("004",      self.event_registration)
 		self.eventcontroller.register_event("JOIN",     self.event_join)
 		self.eventcontroller.register_event("PART",     self.event_part)
 		self.eventcontroller.register_event("KICK",     self.event_kick)
@@ -58,6 +53,7 @@ class IRCController:
 		self.eventcontroller.register_event(ircdef.RPL_TOPIC,    self.event_topic_reply)
 		self.eventcontroller.register_event(ircdef.RPL_NAMREPLY, self.event_channel_names)
 		self.eventcontroller.register_event(ircdef.RPL_WHOREPLY, self.event_who_reply)
+		self.eventcontroller.register_event(ircdef.RPL_MYINFO,   self.event_registration)
 
 		self.eventcontroller.register_command("test", self.command_test)
 
@@ -145,7 +141,6 @@ class IRCController:
 
 		if who.nick == self.currentnick:
 			# We joined a channel
-			channel.is_joined = True
 			Logger.Debug("I joined " + channel_name)
 
 			# Send WHO-message to learn about the users in this channel
@@ -267,12 +262,6 @@ class IRCController:
 			message = IRCMessage(line, self.usercontroller)
 			self.eventcontroller.dispatch_event(self, message)
 
-			if self.MessageHandler:
-				try:
-					self.MessageHandler(self, message)
-				except Exception, e:
-					Logger.Warning("Message handler threw exception: %s" % e)
-
 		except Exception, e:
 			Logger.Warning("Exception: %s" % e)
 
@@ -307,7 +296,7 @@ class IRCController:
 	def is_connected(self):
 		return self.connected
 
-	def connect(self): #, server, port, use_ssl = False, use_ipv6 = False):
+	def connect(self):
 		if self.currentserverindex == len(self.servers):
 			self.currentserverindex = 0
 

@@ -28,8 +28,11 @@ Bot = {
 	"debug": 		False,
 	"masters":		[
 		"*!blejdfist@nurd.se", 
+		"*!jim@localhost",
 		"MrSimulator!Simulator@simulator.tld"
 	],
 	"plugins": [
+		"helloworld",
+		"acl"
 	]
 }

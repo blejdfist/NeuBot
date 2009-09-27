@@ -18,6 +18,7 @@
 # Copyright (c) 2007-2008, Jim Persson, All rights reserved.
 
 from controllers import IRCMessageController
+from controllers import ACLController
 
 import threading
 import traceback
@@ -41,17 +42,13 @@ class EventController:
 		self.moduleTimers = {}
 
 		self.config = None
-		self.acl = None
+		self.acl = ACLController()
 
 		self.command_prefix = "!"
 
 	## @brief Set the configuration to use
-	def SetConfig(self, config):
+	def set_config(self, config):
 		self.config = config
-
-	## @brief Set the ACL handler to use
-	def set_acl(self, acl):
-		self.acl = acl
 
 	## @brief Release callbacks registered by a module
 	# @param obj Module instance for which callbacks should be released
@@ -154,20 +151,28 @@ class EventController:
 	def dispatch_command(self, irc, msg, command, params):
 		key = command.upper()
 
+		if params is None:
+			params = []
+		else:
+			params = params.split()
+
 		if self.commandCallbacks.has_key(key):
 			interface = IRCMessageController(irc, msg)
 
 			# Check access
-			#masters = self.config.Bot["masters"]
-			#masterAccess = reduce(lambda x,y : x or y, [msg.source.matches(hostmask) for hostmask in masters])
+			masterAccess = False
+
+			if self.config:
+				masters = self.config.Bot["masters"]
+				masterAccess = reduce(lambda x,y : x or y, [msg.source.is_matching(hostmask) for hostmask in masters])
 			
 			for (obj, callback, privileged) in self.commandCallbacks[key]:
 				try:
 					# This will abort instantly as soon as a command without access is found
-					#if privileged and not masterAccess:
-					#	if not self.acl.CheckAccess(msg.source, command.lower()):
-					#		interface.reply("Access denied")
-					#		return
+					if privileged and not masterAccess:
+						if not self.acl.check_access(msg.source, command.lower()):
+							interface.reply("Access denied")
+							return
 
 					callback(interface, params)
 				except Exception, e:
@@ -220,5 +225,5 @@ class EventController:
 			match = re.match("^%s([^ ]+)(?:$| (.*)$)" % self.command_prefix, msg.params)
 			if match:
 				command, params = match.groups()
-				self.dispatch_command(irc, msg, command, params.split())
+				self.dispatch_command(irc, msg, command, params)
 

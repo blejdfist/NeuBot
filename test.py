@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from controllers import IRCController
 from controllers import EventController
+from controllers import PluginController
 
 from lib.logger import Logger
 
@@ -12,12 +13,19 @@ import time
 class NeuerBot:
 	def __init__(self, config):
 		self.config = config
-		self.eventcontroller = EventController()
+		self.eventcontroller  = EventController()
+		self.plugincontroller = PluginController(self.eventcontroller)
+
+		self.eventcontroller.set_config(self.config)
 
 		self.irccontrollers = []
 
 	def start(self):
 		botconfig = self.config.Bot
+
+		for plugin in botconfig['plugins']:
+			Logger.Info("Loading plugin '%s'" % plugin)
+			self.plugincontroller.load_plugin(plugin)
 
 		for net in botconfig['ircnets']:
 			irc = IRCController(self.eventcontroller)
@@ -50,6 +58,7 @@ class NeuerBot:
 			irc.disconnect()
 
 if __name__ == "__main__":
+	bot = None
 	try:
 		Logger.EnableDebug()
 		Logger.Info("Initializing...")
@@ -68,4 +77,6 @@ if __name__ == "__main__":
 
 	except Exception, e:
 		Logger.Fatal("Fatal error: %s" % e)
-		bot.stop()
+
+		if bot:
+			bot.stop()

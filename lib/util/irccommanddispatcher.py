@@ -34,10 +34,10 @@ class IRCCommandDispatcher:
 			raise Exception("Need to specify success codes")
 
 		for code in failure_codes:
-			self.eventcontroller.register_event(str(code), self.event_failed)
+			self.eventcontroller.register_event(code, self.event_failed)
 
 		for code in success_codes:
-			self.eventcontroller.register_event(str(code), self.event_success)
+			self.eventcontroller.register_event(code, self.event_success)
 
 		self.event = threading.Event()
 		self.irccontroller.send_raw(cmd)
