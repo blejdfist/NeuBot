@@ -93,11 +93,20 @@ class IRCController:
 				channel.topic = topic
 				return
 
+	##
+	# Called when someone changes his/her nick
 	def event_nick(self, irc):
 		user = irc.message.source
 		new_nick = irc.message.params
+
+		# Since the user object was created throught our UserController
+		# we need to tell it to change the nickname
+		# otherwise the hostmask will not match the next time the user does something
+		# which will result in a dead entry in the UserController
 		user.change(nick = new_nick)
 
+	##
+	# Handle server reply from WHO-command
 	def event_who_reply(self, irc):
 		match = re.match("(.*?) (.*?) (.*?) (.*?) (.*?) (.*?) :[0-9]+ (.*)", irc.message.params)
 		if not match:
@@ -110,12 +119,15 @@ class IRCController:
 		user = self.usercontroller.get_user(whostring)
 
 		# Find the channel among the one we monitor
+		# @todo Implement comparison functions in IRChannel so that we can use find() here
 		for channel in self.channels:
 			if channel.name == chan:
 				# Found, now add the user to that channel
 				channel.add_user(user)
 
 	def event_quit(self, irc):
+		# User quit so remove him/her from all
+		# channels
 		for chan in self.channels:
 			try:
 				chan.del_user(irc.message.source)
@@ -259,6 +271,8 @@ class IRCController:
 
 	def _handle_data(self, line, socket):
 		try:
+			# The IRCMessage needs our usercontroller so that it
+			# can cache users that it sees in it
 			message = IRCMessage(line, self.usercontroller)
 			self.eventcontroller.dispatch_event(self, message)
 
@@ -362,6 +376,11 @@ class IRCController:
 								ircdef.ERR_INVITEONLYCHAN,
 								ircdef.ERR_BANNEDFROMCHAN,
 								ircdef.ERR_BADCHANNELKEY,
+								ircdef.ERR_NEEDMOREPARAMS,
+								ircdef.ERR_NOSUCHCHANNEL,
+								ircdef.ERR_BADCHANMASK,
+								ircdef.ERR_TOOMANYCHANNELS,
+								ircdef.ERR_TOOMANYTARGETS,  # Duplicate channel (sync problem/netsplit)
 							]
 		)
 
