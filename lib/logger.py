@@ -27,35 +27,35 @@ class Callable:
 class Logger:
 	_debug = False
 
-	def EnableDebug(enable = True):
+	def enable_debug(enable = True):
 		Logger._debug = enable
 
-	def Log(msg, level = 'NORMAL'):
+	def log(msg, level = 'NORMAL'):
 		timeString = time.strftime("%c")
 		print "%s [%s]: %s" % (timeString, level, msg)
 
-	def Info(msg):
-		Logger.Log(msg, 'INFO')
+	def info(msg):
+		Logger.log(msg, 'INFO')
 
-	def Debug(msg):
+	def debug(msg):
 		if Logger._debug:
-			Logger.Log(msg, 'DEBUG')
+			Logger.log(msg, 'DEBUG')
 
-	def Error(msg):
-		Logger.Log(msg, 'ERROR')
+	def error(msg):
+		Logger.log(msg, 'ERROR')
 
-	def Fatal(msg):
+	def fatal(msg):
 		print traceback.format_exc()
-		Logger.Log(msg, 'FATAL')
+		Logger.log(msg, 'FATAL')
 
-	def Warning(msg):
-		Logger.Log(msg, 'WARNING')
+	def warning(msg):
+		Logger.log(msg, 'WARNING')
 
-	EnableDebug = Callable(EnableDebug)
-	Log     = Callable(Log)
-	Debug   = Callable(Debug)
-	Info    = Callable(Info)
-	Error   = Callable(Error)
-	Warning = Callable(Warning)
-	Fatal   = Callable(Fatal)
+	enable_debug = Callable(enable_debug)
+	log     = Callable(log)
+	debug   = Callable(debug)
+	info    = Callable(info)
+	error   = Callable(error)
+	warning = Callable(warning)
+	fatal   = Callable(fatal)
 

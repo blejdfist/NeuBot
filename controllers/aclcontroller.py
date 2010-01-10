@@ -20,11 +20,12 @@
 import sqlite3
 
 from lib import Logger
+from models import IRCUser
 #from Lib.TableFormatter import TableFormatter
 
 class ACLController:
-	def __init__(self):
-		self.db = "data/acl.db"
+	def __init__(self, database = 'data/acl.db'):
+		self.db = database
 
 		try:
 			conn = sqlite3.connect(self.db)
@@ -92,6 +93,14 @@ class ACLController:
 
 		return False
 
+	def _hostmask_exists(self, username, hostmask):
+		result = self._query("SELECT hostmask FROM acl_user_hostmasks WHERE aro_name = ? AND hostmask = ?", (username, hostmask))
+		if not result is None:
+			if len(result) != 0:
+				return True
+
+		return False
+
 	def add_group(self, groupname):
 		if self._group_exists(groupname):
 			raise Exception("Group already exists")
@@ -124,12 +133,21 @@ class ACLController:
 		if not self._user_exists(username):
 			raise Exception("No such user")
 
+		if not hostmask or len(hostmask) == 0:
+			raise Exception("Empty hostmask")
+
+		if IRCUser.whoparser.match(hostmask) == None:
+			raise Exception("Invalid hostmask")
+
 		if self._query("INSERT INTO acl_user_hostmasks (aro_name, hostmask) VALUES (?, ?)", (username, hostmask)) is None:
 			raise Exception("Unable to add hostmask")
 
 	def user_del_hostmask(self, username, hostmask):
 		if not self._user_exists(username):
 			raise Exception("No such user")
+
+		if not self._hostmask_exists(username, hostmask):
+			raise Exception("No such hostmask for user '%s'" % username)
 
 		if self._query("DELETE FROM acl_user_hostmasks WHERE aro_name = ? AND hostmask = ?", (username, hostmask)) is None:
 			raise Exception("Unable to remove hostmask")
@@ -138,7 +156,7 @@ class ACLController:
 		if not self._user_exists(username):
 			raise Exception("No such user")
 
-		if not self._GroupExists(groupname):
+		if not self._group_exists(groupname):
 			raise Exception("No such group")
 
 		result = self._query("SELECT aro_name_1 FROM acl_memberships WHERE aro_name_1 = ? AND aro_name_2 = ?", (username,groupname))
@@ -153,7 +171,7 @@ class ACLController:
 		if not self._user_exists(username):
 			raise Exception("No such user")
 
-		if not self._GroupExists(groupname):
+		if not self._group_exists(groupname):
 			raise Exception("No such group")
 
 		result = self._query("SELECT aro_name_1 FROM acl_memberships WHERE aro_name_1 = ? AND aro_name_2 = ?", (username,groupname))
