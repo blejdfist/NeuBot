@@ -59,7 +59,7 @@ class IRCController:
 
 	def schedule_reclaimnick(self):
 		# Schedule bot to rejoin channel
-		Logger.Info("Scheduling reclaim of nick")
+		Logger.info("Scheduling reclaim of nick")
 		kwargs = {
 			"nick": self.nick,
 		}
@@ -67,7 +67,7 @@ class IRCController:
 
 	def schedule_rejoin(self, channel):
 		# Schedule bot to rejoin channel
-		Logger.Info("Scheduling rejoin of channel " + channel.name)
+		Logger.info("Scheduling rejoin of channel " + channel.name)
 		kwargs = {
 			"channel": channel.name,
 			"key": channel.password,
@@ -110,7 +110,7 @@ class IRCController:
 	def event_who_reply(self, irc):
 		match = re.match("(.*?) (.*?) (.*?) (.*?) (.*?) (.*?) :[0-9]+ (.*)", irc.message.params)
 		if not match:
-			Logger.Warning("Invalid RPL_WHOREPLY received")
+			Logger.warning("Invalid RPL_WHOREPLY received")
 			return
 
 		chan, ident, host, server, nick, modes, real_name = match.groups()
@@ -148,19 +148,19 @@ class IRCController:
 				break
 
 		if channel is None:
-			Logger.Warning("%s joined unknown channel %s" % (who.nick, channel_name))
+			Logger.warning("%s joined unknown channel %s" % (who.nick, channel_name))
 			return
 
 		if who.nick == self.currentnick:
 			# We joined a channel
-			Logger.Debug("I joined " + channel_name)
+			Logger.debug("I joined " + channel_name)
 
 			# Send WHO-message to learn about the users in this channel
 			self.send_raw("WHO " + channel_name)
 		else:
 			# It was someone else
 			channel.add_user(who)
-			Logger.Debug("User %s joined %s" % (who.nick, channel_name))
+			Logger.debug("User %s joined %s" % (who.nick, channel_name))
 
 	def event_part(self, irc):
 		who = irc.message.source
@@ -173,22 +173,22 @@ class IRCController:
 				break
 
 		if channel is None:
-			Logger.Warning("%s parted unknown channel %s" % (who.nick, channel_name))
+			Logger.warning("%s parted unknown channel %s" % (who.nick, channel_name))
 			return
 
 		if who.nick == self.currentnick:
 			# We parted a channel
 			channel.is_joined = False
-			Logger.Debug("I parted " + channel_name)
+			Logger.debug("I parted " + channel_name)
 		else:
 			# It was someone else
 			channel.del_user(who)
-			Logger.Debug("User %s parted %s" % (who.nick, channel_name))
+			Logger.debug("User %s parted %s" % (who.nick, channel_name))
 
 	def event_channel_names(self, irc):
 		match = re.match("([=\*@]) ([&#\+!]\S+) :(.*)", irc.message.params)
 		if not match:
-			Logger.Warning("Invalid RPL_NAMREPLY from server")
+			Logger.warning("Invalid RPL_NAMREPLY from server")
 			return
 
 		chan_type, chan_name, chan_users = match.groups()
@@ -224,18 +224,18 @@ class IRCController:
 				break
 
 		if channel is None:
-			Logger.Warning("%s kicked from unknown channel %s" % (got_kicked, channel_name))
+			Logger.warning("%s kicked from unknown channel %s" % (got_kicked, channel_name))
 			return
 
 		if got_kicked == self.currentnick:
 			# We got kicked
 			channel.is_joined = False
-			Logger.Debug("I got kicked from " + channel_name)
+			Logger.debug("I got kicked from " + channel_name)
 			self.schedule_rejoin(channel)
 		else:
 			# It was someone else
 			channel.del_user(got_kicked)
-			Logger.Debug("User %s got kicked from %s" % (got_kicked, channel_name))
+			Logger.debug("User %s got kicked from %s" % (got_kicked, channel_name))
 
 	def event_ping(self, irc):
 		self.pong_server(irc.message.params)
@@ -277,7 +277,7 @@ class IRCController:
 			self.eventcontroller.dispatch_event(self, message)
 
 		except Exception, e:
-			Logger.Warning("Exception: %s" % e)
+			Logger.warning("Exception: %s" % e)
 
 	def _handle_connect(self, socket):
 		self.connected = True
@@ -288,7 +288,7 @@ class IRCController:
 		self.set_nick(self.nick)
 
 	def _handle_disconnect(self, socket):
-		Logger.Info("IRC connection closed")
+		Logger.info("IRC connection closed")
 
 		# Flag all channels as not joined
 		for channel in self.channels:
@@ -296,7 +296,7 @@ class IRCController:
 
 		# If we want to reconnect, automatically schedule a reconnect 
 		if self.autoreconnect:
-			Logger.Info("Will reconnect in %d seconds..." % self.reconnect_time)
+			Logger.info("Will reconnect in %d seconds..." % self.reconnect_time)
 			self.eventcontroller.register_timer(self.reconnect_time, self.connect)
 
 	def join_all_channels(self):
@@ -320,7 +320,7 @@ class IRCController:
 		server = self.servers[self.currentserverindex]
 		self.currentserverindex += 1
 
-		Logger.Info("%s: Connecting to %s..." % (self.ircnet, server))
+		Logger.info("%s: Connecting to %s..." % (self.ircnet, server))
 
 		self.connection = AsyncBufferedNetSocket(server.hostname, server.port, server.use_ssl, server.use_ipv6)
 
@@ -333,7 +333,7 @@ class IRCController:
 			self.connection.connect()
 		except ConnectionFailedException, e:
 			# We failed to connect, schedule a retry
-			Logger.Error("Failed to connect to %s (%s), retrying in %s seconds..." % (self.ircnet, server, self.reconnect_time))
+			Logger.error("Failed to connect to %s (%s), retrying in %s seconds..." % (self.ircnet, server, self.reconnect_time))
 			self.eventcontroller.register_timer(self.reconnect_time, self.connect)
 
 

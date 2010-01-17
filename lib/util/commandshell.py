@@ -1,7 +1,26 @@
 import readline
 from commandparser import CommandParser
 
+##
+# @class CommandShell
+# Implements readline functionality with tab-completion and command callbacks.
+# To function it needs a command-tree dict containing the command structure. 
+# Names prefixed with '$' will be wildcards and will be passed to the final command as named arguments.
+# 
+# commandTreeExample = {
+#   'hello' : cmd_print_hello,
+#   'print' : {'$message': cmd_print_message},
+#   'show' : {
+#     'all': cmd_show_all,
+#     'one': cmd_show_one,
+#   }
+# }
+# shell = CommandShell(commandTreeExample)
+# shell.input("Prompt> ")
 class CommandShell:
+	##
+	# Initialize the CommandShell with a specific parsetree
+	# @param parseTree Parse tree to use
 	def __init__(self, parseTree):
 		self.parseTree = parseTree
 		self.parser = CommandParser(parseTree)
@@ -42,6 +61,9 @@ class CommandShell:
 
 		return result[state]
 
+	##
+	# Prompt the user for input
+	# @param Appearance of the prompt
 	def input(self, prompt):
 		data = raw_input(prompt)
 
