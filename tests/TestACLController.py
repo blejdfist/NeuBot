@@ -2,7 +2,7 @@ import unittest
 import tempfile
 import shutil
 
-from controllers import ACLController
+from controllers.aclcontroller import ACLController
 from models import IRCUser
 
 class TestACLController(unittest.TestCase):

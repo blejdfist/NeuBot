@@ -19,23 +19,14 @@
 
 import new
 import sys
+import os
+import types
 import traceback
-#from Lib.ModuleInitInterface import ModuleInitInterface
-#from Lib.TableFormatter import TableFormatter
 
-class PluginInfo:
-	def __init__(self):
-		self.instance = None
-		self.detail = {
-			"description": None,
-			"author": None,
-			"version": 0.0,
-			"name": None
-		}
+from lib import Plugin
+from lib import Logger
 
-class PluginInterface:
-	def __init__(self):
-		self.eventcontroller = None
+from controllers.datastorecontroller import DatastoreController
 
 class PluginController:
 	def __init__(self, eventcontroller):
@@ -45,24 +36,6 @@ class PluginController:
 	def unload_all(self):
 		for plugin in self.loaded_plugins.keys():
 			self.unload_plugin(plugin)
-
-#	def GetModuleInstance(self, name):
-#		if self._plugins.has_key(name):
-#			return self._plugins[name].instance
-#		else:
-#			return None
-
-#	def GetPlugins(self):
-#		if len(self._plugins) == 0:
-#			return ["No plugins are loaded"]
-#
-#		table = TableFormatter(["Plugin", "Name", "Version", "Author"])
-#
-#		for plugin in self._plugins:
-#			detail = self._plugins[plugin].detail
-#			table.AddRow([plugin, detail["name"], detail["version"], detail["author"]])
-#
-#		return table.GetTable()
 
 	def reload_plugin(self, name):
 		name = name.strip()
@@ -74,75 +47,85 @@ class PluginController:
 
 		self.load_plugin(name)
 
-#	def UnloadCorePlugin(self, name):
-#		self.UnloadPlugin(name, "CoreModules")
-
 	def unload_plugin(self, name, search = "plugins"):
-		name = name.strip()
-		if not self.loaded_plugins.has_key(name):
-			raise Exception("No such plugin")
+		name = name.strip().lower()
 
-		plugin = self.loaded_plugins[name]
+		if not self.loaded_plugins.has_key(name):
+			raise Exception("No such plugin loaded")
+
+		basename, instance = self.loaded_plugins[name]
 
 		# Release events related to this plugin
-		self.eventcontroller.release_related(plugin.instance)
+		self.eventcontroller.release_related(instance)
 
 		# Try to call Cleanup if it exists
 		try:
-			plugin.instance.cleanup()
+			instance.cleanup()
 		except:
 			pass
 
-		# Delete entry and instance
-		del plugin.instance
-		del self._plugins[name]
+		# Delete instance
+		del instance
+		del self.loaded_plugins[name]
 
 		for module in sys.modules.keys():
-			if module.startswith("%s.%s" % (search, name)):
+			if module.startswith("%s.%s" % (search, basename)):
 				del sys.modules[module]
 
-#	def LoadCorePlugin(self, name):
-#		self.LoadPlugin(name, "CoreModules")
+	def find_plugin(self, name, search_dir = "plugins"):
+		# List of all plugins
+		plugins = os.listdir(search_dir)
+		
+		# Try to intelligently find the plugin
+		for plugin in plugins:
+			pluginname = plugin.lower()
+			basename = plugin.partition(".")[0]
 
-	def load_plugin(self, name, search = "plugins"):
+			if pluginname.find(".pyc") != -1: 
+				continue
+
+			if pluginname.find(".") == 0:
+				continue
+
+			if basename.lower() != name.lower():
+				continue
+
+			Logger.debug("Candidate plugin '%s'" % plugin)
+
+			return basename
+
+	def load_plugin(self, name, search_dir = "plugins"):
 		name = name.strip()
 		try:
 			if self.loaded_plugins.has_key(name):
 				raise Exception("Plugin is already loaded")
 
-			mod = __import__("%s.%s" % (search, name))
-			cls = getattr(mod, name)
-			entry = getattr(cls, "PluginEntry")
+			Logger.info("Attempting to load plugin " + name)
 
-			plugin = PluginInfo()
-			self.loaded_plugins[name] = plugin
-			plugin.instance = new.instance(entry)
+			basename = self.find_plugin(name, search_dir)
 
-			# @TODO Fixa interface
-			interface = PluginInterface()
-			interface.eventcontroller = self.eventcontroller
+			if not basename:
+				raise Exception("No such plugin")
 
-			try:
-				plugin.instance.__init__(interface)
-			except Exception, e:
-				raise e
+			mod = __import__("%s.%s" % (search_dir, basename))
+			cls = getattr(mod, basename)
 
-			try:
-				(shortname, desc, version, author) = plugin.instance.GetDetails()
-				plugin.detail["name"]        = shortname
-				plugin.detail["description"] = desc
-				plugin.detail["author"]      = author
-				plugin.detail["version"]     = version
-			except:
-				pass
+			# Find the plugin entry point
+			for objname in dir(cls):
+				obj = getattr(cls, objname)
+				if objname != 'Plugin' and type(obj) == types.ClassType and issubclass(obj, Plugin):
+					Logger.debug("Plugin entry for is '%s'" % objname)
+					instance = new.instance(obj)
+
+					# Initialize plugin instance
+					instance.store = DatastoreController().get_store(basename)
+					instance.event = self.eventcontroller
+					instance.__init__()
+
+					self.loaded_plugins[basename.lower()] = (basename, instance)
+
+					return True
 
 		except Exception, e:
 			print traceback.format_exc()
 			raise Exception("Unable to load plugin: %s (%s)" % (name, e))
-
-#	def GetDetails(self, name):
-#		name = name.strip()
-#		if not self._plugins.has_key(name):
-#			raise Exception("No such plugin")
-#
-#		return self._plugins[name].detail

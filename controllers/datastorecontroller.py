@@ -1,7 +1,8 @@
 from lib.db import Store
+from lib.util import Singleton
 
-class DatastoreController:
-	def __init__(self, uri):
+class DatastoreController(Singleton):
+	def set_driver(self, uri):
 		defaultdriver = "yserial"
 		protocols = {
 			"sqlite":  self._db_yserial,
@@ -17,7 +18,7 @@ class DatastoreController:
 			path = uri
 
 		if not protocols.has_key(drivername):
-			raise Exception("DatastoreController::__init__ Unknown driver '%s'" % drivername)
+			raise Exception("DatastoreController::set_driver Unknown driver '%s'" % drivername)
 
 		self.store = protocols[drivername](path)
 
@@ -27,4 +28,7 @@ class DatastoreController:
 		return store
 
 	def get_store(self, dbname):
+		if not hasattr(self, 'store'):
+			raise Exception("DatastoreController::get_store Data store is not initialized")
+
 		return Store(self.store, dbname)

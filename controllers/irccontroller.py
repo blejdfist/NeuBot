@@ -1,5 +1,5 @@
 from models import Network, Channel, IRCMessage, IRCUser
-from controllers import UserController
+from controllers.usercontroller import UserController
 from lib.net.netsocket import AsyncBufferedNetSocket, ConnectionFailedException
 from lib.logger import Logger
 from lib.util import IRCCommandDispatcher

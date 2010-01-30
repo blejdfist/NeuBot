@@ -17,8 +17,8 @@
 #
 # Copyright (c) 2007-2008, Jim Persson, All rights reserved.
 
-from controllers import IRCMessageController
-from controllers import ACLController
+from controllers.ircmessagecontroller import IRCMessageController
+from controllers.aclcontroller import ACLController
 
 import threading
 import traceback
@@ -142,11 +142,29 @@ class EventController:
 	# Where params will be the parameters of the command. Example: "!mycommand param1 param2 param3" will yield "param1 param2 param3"
 	# </pre>
 	def register_command(self, command, callback, privileged = False):
-		key = command.upper()
+		key = command.lower()
+
 		if not self.commandCallbacks.has_key(key):
 			self.commandCallbacks[key] = []
 
 		self.commandCallbacks[key].append((callback.im_self, callback, privileged))
+
+	##
+	# Retrieve all callbacks associated with a command
+	# @param command Command to find associated callbacks for
+	# @return List of tuples (classinstance, callback, privileged?)
+	def get_command_callbacks(self, command):
+		key = command.lower()
+
+		if not self.commandCallbacks.has_key(key):
+			return None
+
+		return self.commandCallbacks[key]
+
+	##
+	# Retrieve a list of all available commands
+	def get_all_commands(self):
+		return self.commandCallbacks.keys()
 
 	## @brief Dispatch a command
 	# @param irc IRCHandler instance
@@ -154,14 +172,14 @@ class EventController:
 	# @param command The command. Example: "mycommand"
 	# @param params Parameters to the command. Example: "param1 param2 param3"
 	def dispatch_command(self, irc, msg, command, params):
-		key = command.upper()
-
 		if params is None:
 			params = []
 		else:
 			params = params.split()
 
-		if self.commandCallbacks.has_key(key):
+		callbacks = self.get_command_callbacks(command)
+
+		if callbacks:
 			interface = IRCMessageController(irc, msg)
 
 			# Check access
@@ -171,7 +189,7 @@ class EventController:
 				masters = self.config.Bot["masters"]
 				masterAccess = reduce(lambda x,y : x or y, [msg.source.is_matching(hostmask) for hostmask in masters])
 			
-			for (obj, callback, privileged) in self.commandCallbacks[key]:
+			for (obj, callback, privileged) in callbacks:
 				try:
 					# This will abort instantly as soon as a command without access is found
 					if privileged and not masterAccess:

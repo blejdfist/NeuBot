@@ -1,4 +1,4 @@
-from controllers import IRCController
+from controllers.irccontroller import IRCController
 
 class SimulatedIRCController(IRCController):
 	def __init__(self, eventcontroller, socketinstance):

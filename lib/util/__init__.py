@@ -1,3 +1,5 @@
 from commandparser import CommandParser
 from commandshell import CommandShell
 from irccommanddispatcher import IRCCommandDispatcher
+from singleton import Singleton
+from tableformatter import TableFormatter

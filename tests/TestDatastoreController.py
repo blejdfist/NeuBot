@@ -4,12 +4,13 @@ import tempfile
 import shutil
 import hashlib
 
-from controllers import DatastoreController
+from controllers.datastorecontroller import DatastoreController
 
 class TestDatastoreController(unittest.TestCase):
 	def setUp(self):
 		self.tempdir = tempfile.mkdtemp()
-		self.ds = DatastoreController(self.tempdir + "/acl.db")
+		self.ds = DatastoreController()
+		self.ds.set_driver(self.tempdir + "/acl.db")
 		self.store = self.ds.get_store("test_store")
 
 	def tearDown(self):

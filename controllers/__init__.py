@@ -1,7 +1,0 @@
-from aclcontroller import ACLController
-from usercontroller import UserController
-from ircmessagecontroller import IRCMessageController
-from irccontroller import IRCController
-from eventcontroller import EventController
-from plugincontroller import PluginController
-from datastorecontroller import DatastoreController
