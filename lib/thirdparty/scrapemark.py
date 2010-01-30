@@ -93,9 +93,10 @@ class _Pattern:
 			html = fetch_html(url, get, post, headers, cookie_jar)
 
 		# Added for NeuBot
-		self.encoding = chardet.detect(html)
-		if self.encoding['confidence'] > 0.5:
-			html = unicode(html, self.encoding['encoding'], 'ignore')
+		if type(html) is not unicode:
+			self.encoding = chardet.detect(html)
+			if self.encoding['confidence'] > 0.5:
+				html = unicode(html, self.encoding['encoding'], 'ignore')
 
 		captures = {}
 		if _match(self._nodes, _remove_comments(html), 0, captures, url, cookie_jar) == -1:
