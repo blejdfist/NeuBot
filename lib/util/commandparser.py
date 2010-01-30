@@ -26,9 +26,11 @@ class CommandParser:
 	# Variables can be defined as "$nameofvariable" and will automatically be matched if nothing else in that
 	# level is matched. The final function is then called with the named variables.
 	# Example:
+	# <pre>
 	# parseTree = {
 	#   "set": { "name": { "$name": SetNameFunction } }
 	# }
+	# </pre>
 	# When given the string "set name borat" the function 'SetNameFunction' will be called with the
 	# parameter "name" set to "borat".
 	def __init__(self, parse_tree):

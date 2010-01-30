@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+## @package controllers.aclcontroller
+# @brief Access Control lists
 
 # This file is part of NeuBot.
 #
@@ -15,14 +17,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (c) 2007-2008, Jim Persson, All rights reserved.
+# Copyright (c) 2010, Jim Persson, All rights reserved.
 
 import sqlite3
 
 from lib import Logger
 from models import IRCUser
-#from Lib.TableFormatter import TableFormatter
 
+## Access Control Lists - Controller
 class ACLController:
 	def __init__(self, database = 'data/acl.db'):
 		self.db = database

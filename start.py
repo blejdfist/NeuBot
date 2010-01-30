@@ -1,4 +1,23 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+# This file is part of NeuBot.
+#
+# NeuBot is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Copyright (c) 2010, Jim Persson, All rights reserved.
+
 from controllers.irccontroller import IRCController
 from controllers.eventcontroller import EventController
 from controllers.plugincontroller import PluginController
@@ -12,6 +31,65 @@ from models import Server
 
 import time
 
+##
+# @mainpage NeuBot Developer Documentation
+#
+# @section module Writing modules
+#
+# Module skeleton
+# @code
+# from lib import Plugin
+# class MyModule(Plugin):
+#     def __init__(self):
+#         self.name = "Skeleton Module"
+#         self.author = "Jim Persson"
+#         self.version = "1.0"
+#
+#         self.event.register_command("mycommand",         self.cmd_mycommand)
+#         self.event.register_command("privilegedcommand", self.cmd_privilegedcommand, True)
+#         self.event.register_event("PRIVMSG", self.event_privmsghook)
+#         self.event.register_timer(self.timer_timeout, 10)
+#
+#     def cmd_mycommand(self, irc, params):
+#         """Does nothing special"""
+#         irc.reply("Params: " + params)
+#
+#     def cmd_privilegedcommand(self, irc, params):
+#         """This ocmmand is privileged"""
+#         irc.reply("Params: " + params)
+#
+#     def event_privmsghook(self, irc):
+#         irc.reply("Message from " + irc.message.source)
+#
+#     def timer_timeout(self):
+#         # Timer fired
+#         pass
+# @endcode
+# 
+# When a module is instantiated it is automatically given a few attributes
+# <ul>
+#   <li>self.event @link controllers.eventcontroller.EventController EventController @endlink</li>
+#   <li>self.store @link lib.db.store.Store Store @endlink (Wrapper around @link controllers.datastorecontroller.DatastoreController DatastoreController @endlink)</li>
+# </ul>
+#
+# Command documentation for callbacks can be put in the __doc__ for that command by writing the help in a triple-quote enclosed comment
+# in the method header
+# @code
+# def cmd_mycommand(self, irc, params):
+#     """
+#     This is the documentation for this command.
+#     It can be on multiple lines if needed."""
+#     irc.reply("Hello!")
+# @endcode
+#
+# @section useful_classes Useful classes
+# <ul>
+#   <li>@link controllers.ircmessagecontroller.IRCMessageController IRCMessageController @endlink - Gets passed as the first argument to command callbacks
+#   <li>@link controllers.irccontroller.IRCController IRCController @endlink - Methods not handled by IRCMessageController is taken care by the current IRCController
+# </ul>
+
+## 
+# Bot entrypoint
 class NeuerBot:
 	def __init__(self):
 		self.eventcontroller  = EventController()

@@ -1,3 +1,24 @@
+# -*- coding: utf-8 -*-
+## @package controllers.irccontroller
+# Handler for a IRC-connection
+
+# This file is part of NeuBot.
+#
+# NeuBot is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Copyright (c) 2010, Jim Persson, All rights reserved.
+
 from models import Network, Channel, IRCMessage, IRCUser
 from controllers.usercontroller import UserController
 from lib.net.netsocket import AsyncBufferedNetSocket, ConnectionFailedException
@@ -8,6 +29,8 @@ import ircdef
 import re
 import random
 
+##
+# Handles an IRC-connection
 class IRCController:
 	def __init__(self, eventcontroller):
 		self.connected = False
@@ -348,18 +371,33 @@ class IRCController:
 		if self.is_connected():
 			self.send_raw("NICK " + nick)
 
+	##
+	# Set the topic of a channel
+	# @param channel Channel
+	# @param topic The new topic
 	def set_topic(self, channel, topic):
 		self.send_raw("TOPIC %s :%s" % (channel, topic))
 
+	##
+	# Send a private message to a channel or nick
+	# @param destination Channel or nick
+	# @param message Message to send
 	def privmsg(self, destination, message):
 		self.send_raw("PRIVMSG %s :%s" % (destination, message))
 
+	##
+	# Send a notice to a channel or nick
+	# @param destination Channel or nick
+	# @param message Message to send
 	def notice(self, destination, message):
 		self.send_raw("NOTICE %s :%s" % (destination, message))
 
+	##
+	# Join a channel
+	# @param channel Channel to join
+	# @param key Channel password (optional)
 	def join(self, channel, key = None):
 		if key:
-			#self.send_raw("JOIN %s :%s" % (channel, key))
 			cmd = "JOIN %s :%s" % (channel, key)
 		else:
 			cmd = "JOIN " + channel
@@ -389,9 +427,15 @@ class IRCController:
 			chan = Channel(channel, key)
 			self.schedule_rejoin(chan)
 
+	##
+	# Leave a channel
+	# @param channel Channel to leave
 	def part(self, channel):
 		self.send_raw("PART " + channel)
 
+	##
+	# Quit from server
+	# @param message Quit message (optional)
 	def quit(self, message = None):
 		if message:
 			self.send_raw("QUIT :" + message)

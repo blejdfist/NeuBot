@@ -7,6 +7,7 @@ from commandparser import CommandParser
 # To function it needs a command-tree dict containing the command structure. 
 # Names prefixed with '$' will be wildcards and will be passed to the final command as named arguments.
 # 
+# <pre>
 # commandTreeExample = {
 #   'hello' : cmd_print_hello,
 #   'print' : {'$message': cmd_print_message},
@@ -17,6 +18,7 @@ from commandparser import CommandParser
 # }
 # shell = CommandShell(commandTreeExample)
 # shell.input("Prompt> ")
+# </pre>
 class CommandShell:
 	##
 	# Initialize the CommandShell with a specific parsetree

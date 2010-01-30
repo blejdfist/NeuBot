@@ -58,7 +58,6 @@ class EventController:
 	## @brief Release callbacks registered by a module
 	# @param obj Module instance for which callbacks should be released
 	# @warning This should NEVER be called directly by a module
-	# @todo Hide this from the modules
 	def release_related(self, obj):
 		# Free command callbacks
 		for command in self.commandCallbacks.keys():
@@ -86,33 +85,31 @@ class EventController:
 			del self.moduleTimers[obj]
 
 	## @brief Run a specified function after a specified time
-	# @param interval Time to wait before calling the callback function
 	# @param callback Function to call
-	# @param oneshot True if you only want the timer to fire once, False to make a periodic timer
+	# @param interval Time to wait before calling the callback function
 	# @param args (Optional) Tuple containing arguments in the order they should be passed 
 	# @param kwargs (Optional) Dict containing named arguments to pass to the callback
-	# @todo If the callback function raises an exception the timer won't be removed
-	def register_timer(self, interval, callback, oneshot = True, args = (), kwargs = {}):
+	def register_timer(self, callback, interval, args = (), kwargs = {}):
 		def do_timeout(data):
 			callback = data["callback"]
-			oneshot  = data["oneshot"]
-			callback(*data["args"], **data["kwargs"])
+			try:
+				callback(*data["args"], **data["kwargs"])
+			except Exception, e:
+				Logger.warning("Timer caught exception: %s" % e)
 
 			# Free timer
-			if oneshot:
-				if self.moduleTimers.has_key(callback.im_self):
-					for timer in self.moduleTimers[callback.im_self]:
-						if timer == threading.currentThread():
-							self.moduleTimers[callback.im_self].remove(timer)
+			if self.moduleTimers.has_key(callback.im_self):
+				for timer in self.moduleTimers[callback.im_self]:
+					if timer == threading.currentThread():
+						self.moduleTimers[callback.im_self].remove(timer)
 
-					if len(self.moduleTimers[callback.im_self]) == 0:
-						del self.moduleTimers[callback.im_self]
+				if len(self.moduleTimers[callback.im_self]) == 0:
+					del self.moduleTimers[callback.im_self]
 
 		data = {
 			"callback": callback,
 			"args"  : args,
 			"kwargs": kwargs,
-			"oneshot": oneshot
 		}
 
 		if not hasattr(callback, "im_self"):
@@ -120,7 +117,6 @@ class EventController:
 
 		# Create timer object with associated data
 		timer = threading.Timer(interval, do_timeout, kwargs = {"data": data})
-		#timer = threading.Timer(interval, do_timeout, oneShot = oneshot, kwargs = {"data": data})
 
 		# Insert timer in list of active timers
 		if not self.moduleTimers.has_key(callback.im_self):

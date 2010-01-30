@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (c) 2007-2008, Jim Persson, All rights reserved.
+# Copyright (c) 2010, Jim Persson, All rights reserved.
 
 import new
 import sys
