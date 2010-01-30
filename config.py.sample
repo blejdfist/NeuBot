@@ -1,11 +1,11 @@
 altnicks = ["NeuBot_", "NeuBot__"]
 
 EFNet = {
-	"ircnet": "JimNet",
-	"nick": "NeuBot",
-	"altnicks": altnicks,
-	"name": "The Neuest bot",
-	"ident": "neubot",
+	"ircnet":    "EFNet",
+	"nick":      "NeuBot",
+	"altnicks":  altnicks,
+	"name":      "The Neuest bot",
+	"ident":     "neubot",
 
 	# List of servers that can be used for this network
 	# Format is: (hostname, port, use_ssl, use_ipv6)
@@ -25,6 +25,7 @@ EFNet = {
 Bot = {
 	"ircnets": 		[EFNet],
 	"debug": 		False,
+	"datastore":    "yserial://data/store.db",
 	"masters":		[
 		"*!blejdfist@nurd.se", 
 		"*!jim@localhost",

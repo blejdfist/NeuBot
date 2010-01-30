@@ -7,6 +7,7 @@ _SSL_ENABLED = True
 try:
 	import ssl
 except ImportError:
+	Logger.warning("Cannot import 'ssl'. SSL support will be disabled.")
 	_SSL_ENABLED = False
 	
 #class ConnectionClosedException(Exception):
