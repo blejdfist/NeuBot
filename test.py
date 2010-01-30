@@ -48,7 +48,7 @@ class NeuerBot:
 			irc.name     = net['name']
 			irc.ident    = net['ident']
 
-			Logger.Info("Connecting to %s..." % irc.ircnet)
+			Logger.info("Connecting to %s..." % irc.ircnet)
 			irc.connect()
 
 			self.irccontrollers.append(irc)
@@ -60,8 +60,8 @@ class NeuerBot:
 if __name__ == "__main__":
 	bot = None
 	try:
-		Logger.EnableDebug()
-		Logger.Info("Initializing...")
+		Logger.enable_debug()
+		Logger.info("Initializing...")
 		import Config
 
 		bot = NeuerBot(Config)

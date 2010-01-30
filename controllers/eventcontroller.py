@@ -31,7 +31,12 @@ import re
 	register_timer(callback, interval, oneshot, args, kwargs)
 """
 
-## @brief Register and dispatch event- and command callbacks
+## 
+# The EventController handles events and calls the appropriate callbacks when the occur
+#
+# The callback functions are REQUIRED to be enclosed in class instances since
+# the class instance (usually the module) is used to track which events are related
+# so that they ca be freed when the module is unloaded
 class EventController:
 	## @brief Constructor
 	def __init__(self):
