@@ -9,7 +9,8 @@ class UrlCatcherPlugin(Plugin):
 		        
 		self.event.register_event('PRIVMSG', self.event_privmsg)
 
-		self._re_url = re.compile('(https*\:\/\/[a-zA-Z0-9\/\?\&\=\.\%\-\_\,\~\:]*)')
+		#self._re_url = re.compile('(https*\:\/\/[a-zA-Z0-9\/\?\&\=\.\%\-\_\,\~\:]*)')
+		self._re_url = re.compile(r"(https*\:\/\/)([^ \t]*)")
 
 	def event_privmsg(self, irc):
 		match = self._re_url.search(irc.message.params)
@@ -17,10 +18,16 @@ class UrlCatcherPlugin(Plugin):
 		if not match:
 			return
 
-		url = match.group(0)
-		data = scrapemark.scrape("<title>{{title}}</title>", url = url)
+		proto = match.group(1)
+		path  = match.group(2)
 
-		if not data:
-			return
+		try:
+			url = proto + path.encode('idna')
+			data = scrapemark.scrape("<title>{{title}}</title>", url = url)
 
-		irc.reply('Title: %s' % data['title'])
+			if not data:
+				return
+
+			irc.reply('Title: %s' % data['title'])
+		except:
+			pass

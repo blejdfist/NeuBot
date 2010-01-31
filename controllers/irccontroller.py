@@ -296,6 +296,7 @@ class IRCController:
 		try:
 			# The IRCMessage needs our usercontroller so that it
 			# can cache users that it sees in it
+			line = unicode(line, 'utf-8', 'ignore')
 			message = IRCMessage(line, self.usercontroller)
 			self.eventcontroller.dispatch_event(self, message)
 
