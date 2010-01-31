@@ -21,7 +21,7 @@ class Simulator:
 		self.server_name = "irc.example.org"
 
 		self.event = EventController()
-		self.plugin = PluginController(self.event)
+		self.plugin = PluginController()
 		self.socket = FakeSocket(server_name = self.server_name, bot_nick = self.bot_nick, bot_ident = self.bot_ident, bot_host = self.bot_host)
 
 		irc = SimulatedIRCController(self.event, self.socket)

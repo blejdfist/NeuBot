@@ -30,9 +30,33 @@ class Logger:
 	def enable_debug(enable = True):
 		Logger._debug = enable
 
+	def is_debug():
+		return Logger._debug
+
 	def log(msg, level = 'NORMAL'):
-		timeString = time.strftime("%c")
+		level_str = level.ljust(7)
+		timeString = time.strftime("%H:%M:%S")
+
+		colors = {
+			'NORMAL': 0,
+			'INFO':   34,
+			'WARNING':33,
+			'ERROR':  31,
+			'DEBUG':  35,
+			'FATAL':  41,
+		}
+		level = "\033[%dm%s\033[0m" % (colors[level], level_str)
 		print "%s [%s]: %s" % (timeString, level, msg)
+
+	def log_traceback(cls):
+		if Logger._debug:
+			lines = traceback.format_exc().splitlines()
+
+			for line in lines:
+				if cls:
+					Logger.debug(cls.__class__.__name__ + ": " + line)
+				else:
+					Logger.debug(line)
 
 	def info(msg):
 		Logger.log(msg, 'INFO')
@@ -45,13 +69,19 @@ class Logger:
 		Logger.log(msg, 'ERROR')
 
 	def fatal(msg):
-		print traceback.format_exc()
+		lines = traceback.format_exc().splitlines()
+
+		for line in lines:
+			Logger.log(line, 'FATAL')
+
 		Logger.log(msg, 'FATAL')
 
 	def warning(msg):
 		Logger.log(msg, 'WARNING')
 
 	enable_debug = Callable(enable_debug)
+	is_debug= Callable(is_debug)
+	log_traceback = Callable(log_traceback)
 	log     = Callable(log)
 	debug   = Callable(debug)
 	info    = Callable(info)

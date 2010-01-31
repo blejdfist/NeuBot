@@ -41,11 +41,11 @@ class TableFormatter:
 
 		self.data.append(data)
 
-	def get_table(self, columnHeaders = True):
+	def get_table(self, column_headers = True):
 		result = []
 		header = ""
 
-		if columnHeaders:
+		if column_headers:
 			for i in range(0, len(self.columns)):
 				header = header + self.columns[i] + ' '*(self._columnSizes[i]-len(self.columns[i])+1)
 
@@ -54,7 +54,7 @@ class TableFormatter:
 		if len(self.header) > 0:
 			result.append(self.header)
 
-		if columnHeaders or len(self.header) > 0:
+		if column_headers or len(self.header) > 0:
 			result.append('-'*(sum(self._columnSizes)+len(self._columnSizes)-1))
 
 		for row in self.data:

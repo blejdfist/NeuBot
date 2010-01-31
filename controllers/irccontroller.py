@@ -78,8 +78,6 @@ class IRCController:
 		self.eventcontroller.register_event(ircdef.RPL_WHOREPLY, self.event_who_reply)
 		self.eventcontroller.register_event(ircdef.RPL_MYINFO,   self.event_registration)
 
-		self.eventcontroller.register_command("test", self.command_test)
-
 	def schedule_reclaimnick(self):
 		# Schedule bot to rejoin channel
 		Logger.info("Scheduling reclaim of nick")
@@ -96,9 +94,6 @@ class IRCController:
 			"key": channel.password,
 		}
 		self.eventcontroller.register_timer(self.join, self.rejoin_time, kwargs = kwargs)
-
-	def command_test(self, irc, params):
-		irc.reply("Command works. Arguments: %s" % params)
 
 	def event_topic(self, irc):
 		for channel in self.channels:
@@ -176,14 +171,14 @@ class IRCController:
 
 		if who.nick == self.currentnick:
 			# We joined a channel
-			Logger.debug("I joined " + channel_name)
+			Logger.info("Joined " + channel_name)
 
 			# Send WHO-message to learn about the users in this channel
 			self.send_raw("WHO " + channel_name)
 		else:
 			# It was someone else
 			channel.add_user(who)
-			Logger.debug("User %s joined %s" % (who.nick, channel_name))
+			Logger.info("User %s joined %s" % (who.nick, channel_name))
 
 	def event_part(self, irc):
 		who = irc.message.source
@@ -202,11 +197,11 @@ class IRCController:
 		if who.nick == self.currentnick:
 			# We parted a channel
 			channel.is_joined = False
-			Logger.debug("I parted " + channel_name)
+			Logger.info("Parted " + channel_name)
 		else:
 			# It was someone else
 			channel.del_user(who)
-			Logger.debug("User %s parted %s" % (who.nick, channel_name))
+			Logger.info("User %s parted %s" % (who.nick, channel_name))
 
 	def event_channel_names(self, irc):
 		match = re.match("([=\*@]) ([&#\+!]\S+) :(.*)", irc.message.params)
@@ -253,12 +248,12 @@ class IRCController:
 		if got_kicked == self.currentnick:
 			# We got kicked
 			channel.is_joined = False
-			Logger.debug("I got kicked from " + channel_name)
+			Logger.info("Kicked from %s by %s" % (channel_name, who))
 			self.schedule_rejoin(channel)
 		else:
 			# It was someone else
 			channel.del_user(got_kicked)
-			Logger.debug("User %s got kicked from %s" % (got_kicked, channel_name))
+			Logger.info("User %s got kicked from %s" % (got_kicked, channel_name))
 
 	def event_ping(self, irc):
 		self.pong_server(irc.message.params)

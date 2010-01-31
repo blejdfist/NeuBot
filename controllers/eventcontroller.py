@@ -18,17 +18,18 @@
 # Copyright (c) 2007-2008, Jim Persson, All rights reserved.
 
 from controllers.ircmessagecontroller import IRCMessageController
-from controllers.aclcontroller import ACLController
+from controllers.aclcontroller        import ACLController
+from controllers.configcontroller     import ConfigController
+
+from lib import Logger
+from lib.util import Singleton
 
 import threading
-import traceback
 import re
 
 """
-	register_event(callback, event)
-	register_command(callback, command, privileged = False)
-	register_event_regexp(callback, event, param_regexp)
-	register_timer(callback, interval, oneshot, args, kwargs)
+	register_system_event(system_event_code, callback)
+	dispatch_system_event(system_event_code, params)
 """
 
 ## 
@@ -37,23 +38,20 @@ import re
 # The callback functions are REQUIRED to be enclosed in class instances since
 # the class instance (usually the module) is used to track which events are related
 # so that they ca be freed when the module is unloaded
-class EventController:
+class EventController(Singleton):
 	## @brief Constructor
-	def __init__(self):
+	def construct(self):
 		self.commandCallbacks = {}
 		self.eventCallbacks = {}
+		self.syseventCallbacks = {}
 
 		# {obj: timer}
 		self.moduleTimers = {}
 
-		self.config = None
+		self.config = ConfigController()
 		self.acl = ACLController()
 
 		self.command_prefix = "!"
-
-	## @brief Set the configuration to use
-	def set_config(self, config):
-		self.config = config
 
 	## @brief Release callbacks registered by a module
 	# @param obj Module instance for which callbacks should be released
@@ -75,6 +73,15 @@ class EventController:
 				if cbobj == obj:
 					self.eventCallbacks[event].remove(entry)
 					if len(self.eventCallbacks[event]) == 0:
+						del self.eventCallbacks[event]
+
+		# Free system event callbacks
+		for event in self.syseventCallbacks.keys():
+			for entry in self.syseventCallbacks[event]:
+				(cbobj, callback) = entry
+				if cbobj == obj:
+					self.syseventCallbacks[event].remove(entry)
+					if len(self.syseventCallbacks[event]) == 0:
 						del self.eventCallbacks[event]
 
 		# Stop timers
@@ -182,7 +189,7 @@ class EventController:
 			masterAccess = False
 
 			if self.config:
-				masters = self.config.Bot["masters"]
+				masters = self.config.get('masters')
 				masterAccess = reduce(lambda x,y : x or y, [msg.source.is_matching(hostmask) for hostmask in masters])
 			
 			for (obj, callback, privileged) in callbacks:
@@ -195,9 +202,7 @@ class EventController:
 
 					callback(interface, params)
 				except Exception, e:
-					interface.reply(e)
-					print traceback.format_exc()
-					
+					Logger.log_traceback(callback.im_self)
 
 	## @brief Register event callback
 	# Register callback for an IRC-event, this could be any command the server sends, including numerics.
@@ -216,6 +221,34 @@ class EventController:
 
 		self.eventCallbacks[key].append((callback.im_self, callback))
 
+	##
+	# Register a system event callback
+	# @param event Event code
+	# @param callback Callback function to receive the event
+	def register_system_event(self, event, callback):
+		key = str(event).upper()
+		if not self.syseventCallbacks.has_key(key):
+			self.syseventCallbacks[key] = []
+
+		self.syseventCallbacks[key].append((callback.im_self, callback))
+
+	##
+	# Dispatch an bot internal event
+	# @param event Event code
+	# @param params Parameters to send to the event handler (optional)
+	def dispatch_system_event(self, event, params = []):
+		key = str(event).upper()
+		def dispatcher_event_thread(callback, params):
+			try:
+				callback(params)
+			except Exception, e:
+				Logger.log_traceback(callback.im_self)
+
+		if self.syseventCallbacks.has_key(key):
+			for (obj, callback) in self.syseventCallbacks[key]:
+				thread = threading.Thread(target = dispatcher_event_thread, kwargs = {"callback": callback, "params": params})
+				thread.start()
+
 	## @brief Dispatch an event
 	# @param irc IRCController instance
 	# @param msg IRCMessage instance. IRCMessage.command contains the event.
@@ -224,8 +257,7 @@ class EventController:
 			try:
 				callback(interface)
 			except Exception, e:
-				print traceback.format_exc()
-				interface.reply(e)
+				Logger.log_traceback(callback.im_self)
 
 		if not msg.command:
 			return

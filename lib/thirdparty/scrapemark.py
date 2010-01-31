@@ -72,10 +72,8 @@ def fetch_html(url, get=None, post=None, headers=None, cookie_jar=None):
 	request = urllib2.Request(url, post, headers)
 	opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookie_jar))
 	res = opener.open(request)
-	# JIM res.info().getheader("Content-Type")
-	if verbose:
-		print 'DONE fetching.'
-	return res.read()
+	if 'text' in res.headers.getheader('Content-Type'):
+		return res.read()
 
 
 # INTERNALS

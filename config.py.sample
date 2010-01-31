@@ -29,7 +29,11 @@ Bot = {
 	"masters":		[
 		"*!blejdfist@nurd.se", 
 		"*!jim@localhost",
-		"MrSimulator!Simulator@simulator.tld"
+		"MrSim!NeuBot@example.org"
+	],
+	"coreplugins": [
+		"aclcommands",
+		"corecommands",
 	],
 	"plugins": [
 		"urlcatcher",

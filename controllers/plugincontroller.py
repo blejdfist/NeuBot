@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+## @package plugincontroller
+# Handler of loading/unloading plugins
 
 # This file is part of NeuBot.
 #
@@ -25,13 +27,18 @@ import traceback
 
 from lib import Plugin
 from lib import Logger
+from lib.util import Singleton
 
 from controllers.datastorecontroller import DatastoreController
+from controllers.eventcontroller     import EventController
+from controllers.configcontroller    import ConfigController
 
-class PluginController:
-	def __init__(self, eventcontroller):
+##
+# Handler of loading/unloding plugins
+class PluginController(Singleton):
+	def construct(self):
 		self.loaded_plugins = {}
-		self.eventcontroller = eventcontroller
+		self.eventcontroller = EventController()
 
 	def unload_all(self):
 		for plugin in self.loaded_plugins.keys():
@@ -45,7 +52,7 @@ class PluginController:
 		except:
 			pass
 
-		self.load_plugin(name)
+		return self.load_plugin(name)
 
 	def unload_plugin(self, name, search = "plugins"):
 		name = name.strip().lower()
@@ -100,8 +107,6 @@ class PluginController:
 			if self.loaded_plugins.has_key(name):
 				raise Exception("Plugin is already loaded")
 
-			Logger.info("Attempting to load plugin " + name)
-
 			basename = self.find_plugin(name, search_dir)
 
 			if not basename:
@@ -118,8 +123,10 @@ class PluginController:
 					instance = new.instance(obj)
 
 					# Initialize plugin instance
-					instance.store = DatastoreController().get_store(basename)
-					instance.event = self.eventcontroller
+					instance.store  = DatastoreController().get_store(basename)
+					instance.event  = self.eventcontroller
+					instance.config = ConfigController()
+					instance.plugin = self
 					instance.__init__()
 
 					self.loaded_plugins[basename.lower()] = (basename, instance)
@@ -127,5 +134,5 @@ class PluginController:
 					return True
 
 		except Exception, e:
-			print traceback.format_exc()
+			Logger.log_traceback(self)
 			raise Exception("Unable to load plugin: %s (%s)" % (name, e))

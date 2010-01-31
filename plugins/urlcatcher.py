@@ -1,6 +1,10 @@
 from lib import Plugin
+from lib import Logger
 from lib.thirdparty import scrapemark
+
 import re
+import urlparse
+import urllib2
 
 class UrlCatcherPlugin(Plugin):
 	def __init__(self):
@@ -9,8 +13,7 @@ class UrlCatcherPlugin(Plugin):
 		        
 		self.event.register_event('PRIVMSG', self.event_privmsg)
 
-		#self._re_url = re.compile('(https*\:\/\/[a-zA-Z0-9\/\?\&\=\.\%\-\_\,\~\:]*)')
-		self._re_url = re.compile(r"(https*\:\/\/)([^ \t]*)")
+		self._re_url = re.compile(r"(https*\:\/\/[^ \t]*)")
 
 	def event_privmsg(self, irc):
 		match = self._re_url.search(irc.message.params)
@@ -18,16 +21,41 @@ class UrlCatcherPlugin(Plugin):
 		if not match:
 			return
 
-		proto = match.group(1)
-		path  = match.group(2)
+		url = match.group(0)
+		res = urlparse.urlsplit(url)
 
+		# Don't try to get the title for ftp etc
+		if res.scheme not in ['http', 'https']:
+			return
+
+		# Encode domain part to IDNA if possible
+		netloc = res.netloc
 		try:
-			url = proto + path.encode('idna')
+			hostname = res.hostname.encode('IDNA')
+
+			# Add back the username and password
+			if '@' in netloc:
+				usernpass, _ = netloc.rsplit('@')
+				netloc = usernpass + '@' + hostname
+			else:
+				netloc = hostname
+		except:
+			pass
+
+		res = res._replace(fragment = '', netloc = netloc)
+
+		# Reassemble the parts
+		url = urlparse.urlunsplit(res)
+
+		Logger.info("Urlcatcher retrieving '%s'" % url)
+		try:
 			data = scrapemark.scrape("<title>{{title}}</title>", url = url)
 
 			if not data:
+				Logger.info("Urlcatcher received no title")
 				return
 
 			irc.reply('Title: %s' % data['title'])
-		except:
-			pass
+		except Exception, e:
+			Logger.warning("Urlcatcher error")
+			raise e

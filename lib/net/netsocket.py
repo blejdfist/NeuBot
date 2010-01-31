@@ -2,6 +2,8 @@ import socket
 import select
 import threading
 
+from lib import Logger
+
 _SSL_ENABLED = True
 
 try:
@@ -62,7 +64,7 @@ class AsyncBufferedNetSocket:
 		self.connection_thread.join(timeout=10)
 
 		if self.connection_thread.is_alive():
-			print "AsyncBufferedNetSocket: Thread did not exit"
+			Logger.warning("AsyncBufferedNetSocket: Thread did not exit")
 
 		self.connection_thread = None
 
@@ -123,7 +125,11 @@ class AsyncBufferedNetSocket:
 		if len(rsockets) > 0:
 			try:
 				data = rsockets[0].recv(4096)
-				print data
+
+				if Logger.is_debug():
+					for line in data.splitlines():
+						Logger.debug("RECV: " + line.strip())
+
 			except:
 				self.connected = False
 				return
@@ -144,5 +150,5 @@ class AsyncBufferedNetSocket:
 		return line
 
 	def send(self, data):
-		print "Sending:", data
+		Logger.debug("SEND: " + data.strip())
 		self.socket.send(data)

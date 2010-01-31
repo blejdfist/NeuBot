@@ -10,5 +10,8 @@ class Singleton(object):
 		if cls._instance is None:
 			cls._instance = object.__new__(cls, *args, **kwargs)
 
+			if hasattr(cls._instance, "construct"):
+				cls._instance.construct()
+
 		return cls._instance
 

@@ -196,7 +196,7 @@ class ACLCommands(Plugin):
 		    add [user|group] <name>
 		    del [user|group] <name>
 		    user <username> [show | addmask <hostmask> | delmask <hostmask>]
-		    group <groupname> [show | adduser <username> | deluser <username>]
+		    group <groupname> [show | adduser <username> | deluser <username>]
 		    access <context> [allow|deny|remove] <group_or_user>
 		    access <context> clear
 		    show [users|groups]"""

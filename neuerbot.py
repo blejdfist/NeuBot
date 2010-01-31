@@ -30,6 +30,7 @@ from models import Channel
 from models import Server
 
 import time
+import threading
 
 ##
 # @mainpage NeuBot Developer Documentation
@@ -45,18 +46,28 @@ import time
 #         self.author = "Jim Persson"
 #         self.version = "1.0"
 #
+#         # Register commands
 #         self.event.register_command("mycommand",         self.cmd_mycommand)
 #         self.event.register_command("privilegedcommand", self.cmd_privilegedcommand, True)
+#
+#         # Register an event
 #         self.event.register_event("PRIVMSG", self.event_privmsghook)
+#
+#         # Register a timer
 #         self.event.register_timer(self.timer_timeout, 10)
+#
+#         # Put a value in the data store
+#         self.store.put("a_list", [1,2,3,4])
 #
 #     def cmd_mycommand(self, irc, params):
 #         """Does nothing special"""
 #         irc.reply("Params: " + params)
 #
 #     def cmd_privilegedcommand(self, irc, params):
-#         """This ocmmand is privileged"""
-#         irc.reply("Params: " + params)
+#         """This command is privileged"""
+#         # Retrieve a value from the data store and display it to the user
+#         tmp = self.store.get("a_list")
+#         irc.reply(tmp)
 #
 #     def event_privmsghook(self, irc):
 #         irc.reply("Message from " + irc.message.source)
@@ -70,6 +81,8 @@ import time
 # <ul>
 #   <li>self.event @link controllers.eventcontroller.EventController EventController @endlink</li>
 #   <li>self.store @link lib.db.store.Store Store @endlink (Wrapper around @link controllers.datastorecontroller.DatastoreController DatastoreController @endlink)</li>
+#   <li>self.plugin @link controllers.plugincontroller.PluginController PluginController @endlink - Be careful with this one</li>
+#   <li>self.config @link controllers.configcontroller.ConfigController ConfigController @endlink</li>
 # </ul>
 #
 # Command documentation for callbacks can be put in the __doc__ for that command by writing the help in a triple-quote enclosed comment
@@ -93,17 +106,27 @@ import time
 class NeuerBot:
 	def __init__(self):
 		self.eventcontroller  = EventController()
-		self.plugincontroller = PluginController(self.eventcontroller)
+		self.plugincontroller = PluginController()
 
 		self.config = ConfigController()
 
-		self.eventcontroller.set_config(self.config)
-
 		self.irccontrollers = []
+
+		self.quit_event = threading.Event()
+		self.eventcontroller.register_system_event("BOT_QUIT", self.system_quit)
+
+	def system_quit(self, params):
+		self.quit_event.set()
 
 	def start(self):
 		# Initialize data store
 		DatastoreController().set_driver(self.config.get('datastore'))
+
+		Logger.enable_debug(self.config.get('debug'))
+
+		for plugin in self.config.get('coreplugins'):
+			Logger.info("Loading core plugin '%s'" % plugin)
+			self.plugincontroller.load_plugin(plugin, 'core')
 
 		for plugin in self.config.get('plugins'):
 			Logger.info("Loading plugin '%s'" % plugin)
@@ -143,22 +166,20 @@ class NeuerBot:
 if __name__ == "__main__":
 	bot = None
 	try:
-		Logger.enable_debug()
 		Logger.info("Initializing...")
 
 		bot = NeuerBot()
 		bot.start()
 
-		while True:
-			# Perform stuff
-			time.sleep(1)
+		while not bot.quit_event.isSet():
+			bot.quit_event.wait(1)
 
 	except KeyboardInterrupt:
 		Logger.info("Keyboard interrupt detected. Shutting down.")
-		bot.stop()
 
 	except Exception, e:
 		Logger.fatal("Fatal error: %s" % e)
 
+	finally:
 		if bot:
 			bot.stop()
