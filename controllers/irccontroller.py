@@ -328,6 +328,9 @@ class IRCController:
 				self.join(channel.name, channel.password)
 
 	def send_raw(self, data):
+		if type(data) == unicode:
+			data = data.encode('utf-8')
+
 		self.connection.send(data + "\r\n")
 
 	def is_connected(self):
