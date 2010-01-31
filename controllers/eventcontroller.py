@@ -170,7 +170,7 @@ class EventController(Singleton):
 		return self.commandCallbacks.keys()
 
 	## @brief Dispatch a command
-	# @param irc IRCHandler instance
+	# @param irc IRCController instance
 	# @param msg IRCMessage instance
 	# @param command The command. Example: "mycommand"
 	# @param params Parameters to the command. Example: "param1 param2 param3"

@@ -103,6 +103,7 @@ class PluginController(Singleton):
 
 	def load_plugin(self, name, search_dir = "plugins"):
 		name = name.strip()
+		import_name = None
 		try:
 			if self.loaded_plugins.has_key(name):
 				raise Exception("Plugin is already loaded")
@@ -112,7 +113,8 @@ class PluginController(Singleton):
 			if not basename:
 				raise Exception("No such plugin")
 
-			mod = __import__("%s.%s" % (search_dir, basename))
+			import_name = "%s.%s" % (search_dir, basename)
+			mod = __import__(import_name)
 			cls = getattr(mod, basename)
 
 			# Find the plugin entry point
@@ -133,6 +135,12 @@ class PluginController(Singleton):
 
 					return True
 
+			raise Exception("Unable to find entry point")
+
 		except Exception, e:
+			# Remove the system-entry
+			if import_name and sys.modules.has_key(import_name):
+				del sys.modules[import_name]
+
 			Logger.log_traceback(self)
 			raise Exception("Unable to load plugin: %s (%s)" % (name, e))

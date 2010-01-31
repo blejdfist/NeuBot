@@ -81,7 +81,8 @@ class CoreCommands(Plugin):
 				min_whitespace = min(map(lambda x : len(x) - len(x.lstrip()), lines))
 
 				for line in lines:
-					line = line[min_whitespace:]
+					# Tweak whitespace and replace tabs with spaces
+					line = line[min_whitespace:].replace("\t", "    ")
 					irc.notice(irc.message.source.nick, line)
 
 		if not found_help:
