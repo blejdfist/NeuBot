@@ -86,7 +86,7 @@ class IRCController:
 		kwargs = {
 			"nick": self.nick,
 		}
-		self.eventcontroller.register_timer(self.reclaim_time, self.set_nick, kwargs = kwargs)
+		self.eventcontroller.register_timer(self.set_nick, self.reclaim_time, kwargs = kwargs)
 
 	def schedule_rejoin(self, channel):
 		# Schedule bot to rejoin channel
@@ -95,7 +95,7 @@ class IRCController:
 			"channel": channel.name,
 			"key": channel.password,
 		}
-		self.eventcontroller.register_timer(self.rejoin_time, self.join, kwargs = kwargs)
+		self.eventcontroller.register_timer(self.join, self.rejoin_time, kwargs = kwargs)
 
 	def command_test(self, irc, params):
 		irc.reply("Command works. Arguments: %s" % params)
@@ -320,7 +320,7 @@ class IRCController:
 		# If we want to reconnect, automatically schedule a reconnect 
 		if self.autoreconnect:
 			Logger.info("Will reconnect in %d seconds..." % self.reconnect_time)
-			self.eventcontroller.register_timer(self.reconnect_time, self.connect)
+			self.eventcontroller.register_timer(self.connect, self.reconnect_time)
 
 	def join_all_channels(self):
 		for channel in self.channels:
@@ -360,7 +360,7 @@ class IRCController:
 		except ConnectionFailedException, e:
 			# We failed to connect, schedule a retry
 			Logger.error("Failed to connect to %s (%s), retrying in %s seconds..." % (self.ircnet, server, self.reconnect_time))
-			self.eventcontroller.register_timer(self.reconnect_time, self.connect)
+			self.eventcontroller.register_timer(self.connect, self.reconnect_time)
 
 
 	def disconnect(self):

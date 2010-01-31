@@ -5,7 +5,6 @@ sim = Simulator()
 sim.start()
 
 sim.load_plugin("urlcatcher")
-sim.load_plugin("helloworld2")
 sim.load_plugin("corecommands", "core")
 sim.load_plugin("aclcommands", "core")
 
