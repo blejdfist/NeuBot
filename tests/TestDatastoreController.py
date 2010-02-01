@@ -22,7 +22,7 @@ class TestDatastoreController(unittest.TestCase):
 			self.assertEqual(value, self.store.get("name"))
 
 	def testNonExistantKey(self):
-		self.assertRaises(Exception, self.store.get("invalidkey"))
+		self.assertEqual(None, self.store.get("invalidkey"))
 
 	def testBinaryData(self):
 		data = ''
