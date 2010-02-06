@@ -25,26 +25,48 @@ import sys
 ##
 # Contains the configuration
 class ConfigController(Singleton):
-	def __init__(self):
-		if not hasattr(self, 'botconfig'):
-			self.load()
+	def construct(self):
+		self.config = {}
+
+		self.load()
+
+	def load_defaults(self):
+		self.config = {
+			"debug": False,
+			"ircnets": [],
+			"datastore": "yserial://datastore.db",
+			"masters": [],
+			"coreplugins": ["aclcommands", "corecommands"],
+			"plugins": [],
+
+			"irc.pong_timeout":            180,		# Time of no ping/pong until bot sends it's own PING to server
+			"irc.pong_disconnect_time":    300,		# Time of no ping/pong until bot tries to reconnect
+			"irc.reclaim_nick_time":       30,		# Time to wait before trying to reclaim lost nick
+			"irc.rejoin_channel_time":     10,		# Time to wait before trying to rejoin channel
+			"irc.reconnect_time":          60,		# Time to wait before trying to reconnect to server
+			"irc.reclaim_nick_if_lost":    True,	# Should the bot try to reclaim a lost nick?
+		}
 
 	def load(self):
-		if hasattr(self, "botconfig"):
-			del self.botconfig
+		self.load_defaults()
 
 		if sys.modules.has_key('config'):
 			del sys.modules['config']
 
 		mod = __import__("config")
-		self.botconfig = mod.Bot
+
+		# Overwrite any defaults
+		for key in mod.Bot.keys():
+			self.config[key] = mod.Bot[key]
+
+		del mod
 
 	##
 	# Get the value for a configuration option
 	# @param key Configuration option
 	# @return Option value
 	def get(self, key):
-		if self.botconfig.has_key(key):
-			return self.botconfig[key]
+		if self.config.has_key(key):
+			return self.config[key]
 
 		return None

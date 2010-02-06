@@ -21,6 +21,7 @@
 
 from models import Network, Channel, IRCMessage, IRCUser
 from controllers.usercontroller import UserController
+from controllers.configcontroller import ConfigController
 from lib.net.netsocket import AsyncBufferedNetSocket, ConnectionFailedException
 from lib.logger import Logger
 from lib.util import IRCCommandDispatcher
@@ -28,6 +29,8 @@ from lib.util import IRCCommandDispatcher
 import ircdef
 import re
 import random
+import time
+import threading
 
 ##
 # Handles an IRC-connection
@@ -37,6 +40,8 @@ class IRCController:
 		self.connection = None
 		self.eventcontroller = eventcontroller
 		self.usercontroller = UserController()
+
+		self.config = ConfigController()
 
 		# Attributes
 		self.ircnet = None
@@ -57,14 +62,14 @@ class IRCController:
 
 		# Automatically auto connect unless we say otherwise
 		self.autoreconnect = True
-		self.autoreclaimnick = True
 
-		self.rejoin_time = 10
-		self.reclaim_time = 10
-		self.reconnect_time = 10
+		# Last PONG
+		self.last_ping_pong_ts = 0
+		self.keepalive_thread_exit_event = None
 
 		# Register events
 		self.eventcontroller.register_event("PING",     self.event_ping)
+		self.eventcontroller.register_event("PONG",     self.event_pong)
 		self.eventcontroller.register_event("433",      self.event_nickinuse)
 		self.eventcontroller.register_event("JOIN",     self.event_join)
 		self.eventcontroller.register_event("PART",     self.event_part)
@@ -80,20 +85,22 @@ class IRCController:
 
 	def schedule_reclaimnick(self):
 		# Schedule bot to rejoin channel
-		Logger.info("Scheduling reclaim of nick")
+		reclaim_nick_time = self.config.get('irc.reclaim_nick_time')
+		Logger.info("Scheduling reclaim of nick in %d seconds" % (reclaim_nick_time,))
 		kwargs = {
 			"nick": self.nick,
 		}
-		self.eventcontroller.register_timer(self.set_nick, self.reclaim_time, kwargs = kwargs)
+		self.eventcontroller.register_timer(self.set_nick, reclaim_nick_time, kwargs = kwargs)
 
 	def schedule_rejoin(self, channel):
 		# Schedule bot to rejoin channel
-		Logger.info("Scheduling rejoin of channel " + channel.name)
+		rejoin_channel_time = self.config.get('irc.rejoin_channel_time')
+		Logger.info("Scheduling rejoin of channel %s in %d seconds" % (channel.name, rejoin_channel_time))
 		kwargs = {
 			"channel": channel.name,
 			"key": channel.password,
 		}
-		self.eventcontroller.register_timer(self.join, self.rejoin_time, kwargs = kwargs)
+		self.eventcontroller.register_timer(self.join, rejoin_channel_time, kwargs = kwargs)
 
 	def event_topic(self, irc):
 		for channel in self.channels:
@@ -257,6 +264,10 @@ class IRCController:
 
 	def event_ping(self, irc):
 		self.pong_server(irc.message.params)
+		self.last_ping_pong_ts = time.time()
+
+	def event_pong(self, irc):
+		self.last_ping_pong_ts = time.time()
 
 	def event_nickinuse(self, irc):
 		if self.currentnick == None:
@@ -276,7 +287,7 @@ class IRCController:
 
 			self.set_nick(altnick)
 		else:
-			if self.autoreclaimnick:
+			if self.config.get('irc.reclaim_nick_if_lost'):
 				self.schedule_reclaimnick()
 
 	def event_registration(self, irc):
@@ -284,7 +295,7 @@ class IRCController:
 		self.join_all_channels()
 
 		# We didn't get the nick we wanted
-		if self.currentnick != self.nick and self.autoreclaimnick:
+		if self.currentnick != self.nick and self.config.get('irc.reclaim_nick_if_lost'):
 			self.schedule_reclaimnick()
 
 	def _handle_data(self, line, socket):
@@ -306,8 +317,20 @@ class IRCController:
 		self.send_raw("USER %s 9 * :%s" % (self.ident, self.name))
 		self.set_nick(self.nick)
 
+		# Reset PONG-timer
+		self.last_ping_pong_ts = time.time()
+
+		# Dispatch keepalive-thread
+		self.keepalive_thread_exit_event = threading.Event()
+		self.keepalive_thread = threading.Thread(target = self.thread_keepalive)
+		self.keepalive_thread.start()
+
 	def _handle_disconnect(self, socket):
 		Logger.info("IRC connection closed")
+		self.connected = False
+
+		# Tear down keepalive-thread
+		self.keepalive_thread_exit_event.set()
 
 		# Flag all channels as not joined
 		for channel in self.channels:
@@ -315,8 +338,9 @@ class IRCController:
 
 		# If we want to reconnect, automatically schedule a reconnect 
 		if self.autoreconnect:
-			Logger.info("Will reconnect in %d seconds..." % self.reconnect_time)
-			self.eventcontroller.register_timer(self.connect, self.reconnect_time)
+			reconnect_time = self.config.get('irc.reconnect_time')
+			Logger.info("Will reconnect in %d seconds..." % reconnect_time)
+			self.eventcontroller.register_timer(self.connect, reconnect_time)
 
 	def join_all_channels(self):
 		for channel in self.channels:
@@ -331,6 +355,26 @@ class IRCController:
 
 	def is_connected(self):
 		return self.connected
+
+	def thread_keepalive(self):
+		Logger.debug("Keepalive-thread started")
+		pong_disconnect_time = self.config.get("irc.pong_disconnect_time")
+		pong_timeout = self.config.get("irc.pong_timeout")
+
+		while self.is_connected() and not self.keepalive_thread_exit_event.isSet():
+			time_since_ping_pong = time.time() - self.last_ping_pong_ts
+
+			if time_since_ping_pong > pong_disconnect_time:
+				Logger.info("No PING PONG for more than %d seconds. Reconnecting." % (pong_disconnect_time,))
+				self.reconnect()
+				break
+			elif time_since_ping_pong > pong_timeout:
+				Logger.info("No PONG for %d seconds. Sending PING." % (time_since_ping_pong,))
+				self.ping_server()
+
+			self.keepalive_thread_exit_event.wait(10)
+
+		Logger.debug("Keepalive-thread stopping")
 
 	def connect(self):
 		if self.currentserverindex == len(self.servers):
@@ -355,13 +399,23 @@ class IRCController:
 			self.connection.connect()
 		except ConnectionFailedException, e:
 			# We failed to connect, schedule a retry
-			Logger.error("Failed to connect to %s (%s), retrying in %s seconds..." % (self.ircnet, server, self.reconnect_time))
-			self.eventcontroller.register_timer(self.connect, self.reconnect_time)
+			reconnect_time = self.config.get('irc.reconnect_time')
+			Logger.error("Failed to connect to %s (%s), retrying in %s seconds..." % (self.ircnet, server, reconnect_time))
+			self.eventcontroller.register_timer(self.connect, reconnect_time)
 
 
 	def disconnect(self):
+		# We might have reconnection/rejoin/reclaim-timers running
+		# so we need to release them so that the user may shutdown the bot if he/she wants to
+		self.eventcontroller.release_related(self)
+
 		# We were asked to disconnect, so we don't want to autoreconnect
 		self.autoreconnect = False
+		self.connection.disconnect()
+
+	def reconnect(self):
+		# If we are reconnecting, we want to autoreconnect when the connection is closed
+		self.autoreconnect = True
 		self.connection.disconnect()
 
 	def set_nick(self, nick):
@@ -446,3 +500,6 @@ class IRCController:
 			self.send_raw("PONG :" + tag)
 		else:
 			self.send_raw("PONG *")
+
+	def ping_server(self):
+		self.send_raw("PING *")

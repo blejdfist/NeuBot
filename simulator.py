@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 from simulator import Simulator
+from lib import Logger
+
+Logger.enable_debug()
 
 sim = Simulator()
 sim.start()

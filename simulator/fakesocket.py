@@ -1,3 +1,5 @@
+from lib import Logger
+
 import ircdef
 import re
 
@@ -73,3 +75,5 @@ class FakeSocket:
 			channel, message = match.groups()
 
 			print "[%s:%s] %s" % (self.bot_nick, channel, message)
+		else:
+			Logger.debug("Unhandled: " + data.strip())

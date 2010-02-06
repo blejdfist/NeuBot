@@ -61,10 +61,12 @@ class AsyncBufferedNetSocket:
 
 	def disconnect(self):
 		self.connected = False
-		self.connection_thread.join(timeout=10)
 
-		if self.connection_thread.is_alive():
-			Logger.warning("AsyncBufferedNetSocket: Thread did not exit")
+		if self.connection_thread:
+			self.connection_thread.join(timeout=10)
+
+			if self.connection_thread.is_alive():
+				Logger.warning("AsyncBufferedNetSocket: Thread did not exit")
 
 		self.connection_thread = None
 

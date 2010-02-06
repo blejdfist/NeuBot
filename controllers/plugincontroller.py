@@ -121,7 +121,7 @@ class PluginController(Singleton):
 			for objname in dir(cls):
 				obj = getattr(cls, objname)
 				if objname != 'Plugin' and type(obj) == types.ClassType and issubclass(obj, Plugin):
-					Logger.debug("Plugin entry for is '%s'" % objname)
+					Logger.debug("Plugin entry is '%s'" % objname)
 					instance = new.instance(obj)
 
 					# Initialize plugin instance
