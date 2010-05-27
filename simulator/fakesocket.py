@@ -79,5 +79,16 @@ class FakeSocket:
 			channel, message = match.groups()
 
 			print "[%s:%s] %s" % (self.bot_nick, channel, message)
+
+		elif cmd == "NOTICE":
+			match = re.match("NOTICE (.*?) :(.*)", data)
+			channel, message = match.groups()
+
+			print "<%s:%s> %s" % (self.bot_nick, channel, message)
+
+		elif cmd == "PING":
+			match = re.match("PING (.*)", data)
+			self.server_response("PONG", match.group(1))
+
 		else:
 			Logger.debug("Unhandled: " + data.strip())
