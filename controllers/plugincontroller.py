@@ -32,6 +32,7 @@ from lib.util import Singleton
 from controllers.datastorecontroller import DatastoreController
 from controllers.eventcontroller     import EventController
 from controllers.configcontroller    import ConfigController
+from controllers.ircnetscontroller   import IRCNetsController
 
 ##
 # Handler of loading/unloding plugins
@@ -128,6 +129,7 @@ class PluginController(Singleton):
 					instance.store  = DatastoreController().get_store(basename)
 					instance.event  = self.eventcontroller
 					instance.config = ConfigController()
+					instance.nets   = IRCNetsController()
 					instance.plugin = self
 					instance.__init__()
 

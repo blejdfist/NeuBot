@@ -43,7 +43,6 @@ class FakeSocket:
 	# @param params Parameters to the command
 	def server_user_response(self, code, params):
 		data = ":%s!%s@%s %s %s" % (self.sim_nick, self.sim_ident, self.sim_host, code, params)
-		print data
 		self.server_raw(data)
 
 	def connect(self):

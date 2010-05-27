@@ -2,6 +2,7 @@ from controllers.irccontroller import IRCController
 from controllers.eventcontroller import EventController
 from controllers.datastorecontroller import DatastoreController
 from controllers.plugincontroller import PluginController
+from controllers.ircnetscontroller import IRCNetsController
 
 from models import Channel, Server
 
@@ -34,6 +35,9 @@ class Simulator:
 
 		# Add fake server
 		irc.servers.append(Server(self.server_name, 6667))
+
+		# Register server with ircnetscontroller
+		IRCNetsController().add_ircnet("SimuNet", irc)
 
 		# Add fake channels
 		irc.channels.append(Channel('#simulator'))

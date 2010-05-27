@@ -23,7 +23,7 @@ if options.plugins:
 	plugins = options.plugins.split(",")
 
 	for plugin in plugins:
-		Logger.info("Loading %s", plugin)
+		Logger.info("Loading %s" % plugin)
 		sim.load_plugin(plugin)
 
 while True:

@@ -105,12 +105,11 @@ import threading
 # Bot entrypoint
 class NeuerBot:
 	def __init__(self):
-		self.eventcontroller  = EventController()
-		self.plugincontroller = PluginController()
+		self.eventcontroller   = EventController()
+		self.plugincontroller  = PluginController()
+		self.ircnetscontroller = IRCNetsController()
 
 		self.config = ConfigController()
-
-		self.irccontrollers = []
 
 		self.quit_event = threading.Event()
 		self.eventcontroller.register_system_event("BOT_QUIT", self.system_quit)
@@ -157,7 +156,7 @@ class NeuerBot:
 			Logger.info("Connecting to %s..." % irc.ircnet)
 			irc.connect()
 
-			self.irccontrollers.append(irc)
+			self.ircnetscontroller.add_ircnet(irc.ircnet, irc)
 
 	def stop(self):
 		for irc in self.irccontrollers:
