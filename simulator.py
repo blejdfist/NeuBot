@@ -24,7 +24,10 @@ if options.plugins:
 
 	for plugin in plugins:
 		Logger.info("Loading %s" % plugin)
-		sim.load_plugin(plugin)
+		try:
+			sim.load_plugin(plugin)
+		except Exception, e:
+			Logger.log_traceback(sim)
 
 while True:
 	try:
