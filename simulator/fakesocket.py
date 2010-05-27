@@ -15,6 +15,10 @@ class FakeSocket:
 		self.bot_ident = bot_ident
 		self.bot_host = bot_host
 
+		self.sim_nick = "MrSim"
+		self.sim_ident = "mrsim"
+		self.sim_host = "example.org"
+
 	##
 	# Simulate raw data from the server
 	# 
@@ -38,7 +42,8 @@ class FakeSocket:
 	# @param code Command from the user
 	# @param params Parameters to the command
 	def server_user_response(self, code, params):
-		data = ":%s!%s@%s %s %s" % (self.bot_nick, self.bot_ident, self.bot_host, code, params)
+		data = ":%s!%s@%s %s %s" % (self.sim_nick, self.sim_ident, self.sim_host, code, params)
+		print data
 		self.server_raw(data)
 
 	def connect(self):

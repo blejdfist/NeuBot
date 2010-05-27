@@ -17,7 +17,7 @@ class Simulator:
 		self.bot_nick = "NeuBot"
 		self.bot_ident = "neubot"
 		self.bot_host = "example.org"
-		self.sim_nick = "MrSim"
+
 		self.server_name = "irc.example.org"
 
 		self.event = EventController()
