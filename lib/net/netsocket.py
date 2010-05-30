@@ -130,7 +130,7 @@ class AsyncBufferedNetSocket:
 
 				if Logger.is_debug():
 					for line in data.splitlines():
-						Logger.debug("RECV: " + line.strip())
+						Logger.debug3("RECV: " + line.strip())
 
 			except:
 				self.connected = False
@@ -152,5 +152,5 @@ class AsyncBufferedNetSocket:
 		return line
 
 	def send(self, data):
-		Logger.debug("SEND: " + data.strip())
+		Logger.debug3("SEND: " + data.strip())
 		self.socket.send(data)

@@ -17,7 +17,9 @@
 #
 # Copyright (c) 2007-2008, Jim Persson, All rights reserved.
 
-from lib.util import CommandParser
+from lib.util.commandparser import CommandParser, CommandError
+from lib.util.tableformatter import TableFormatter
+
 from lib import Plugin
 
 from controllers.aclcontroller import ACLController
@@ -150,7 +152,7 @@ class ACLCommands(Plugin):
 		members.reverse()
 		while len(members) != 0:
 			row = []
-			for i in range(0, 5):
+			for _ in range(0, 5):
 				if len(members) != 0:
 					user = members.pop()
 					row.append(user)
@@ -158,7 +160,7 @@ class ACLCommands(Plugin):
 			row += [""]*(5-len(row))
 			users.add_row(row)
 
-		return users.GetTable()
+		return users.get_table()
 
 	def get_users(self):
 		users = self.acl.get_users()
@@ -168,7 +170,7 @@ class ACLCommands(Plugin):
 	def get_groups(self):
 		groups = self.acl.get_groups()
 
-		return ["Found %d groups:" % len(groups)] + groups
+		return ["Found %d groups" % len(groups)] + groups
 
 	def access_allow(self, context, aro):
 		self.acl.access_allow(context, aro)
@@ -186,7 +188,7 @@ class ACLCommands(Plugin):
 		return ["Ok"]
 
 	def access_clear(self, context):
-		self.acl.AccessClear(context)
+		self.acl.access_clear(context)
 
 		return ["Ok"]
 
@@ -207,6 +209,9 @@ class ACLCommands(Plugin):
 				for line in result:
 					irc.reply(line)
 
-		except Exception, e:
+		except CommandError as e:
+			irc.reply(e)
+
+		except Exception as e:
 			irc.reply(e)
 

@@ -41,6 +41,12 @@ class IRCMessageController:
 	def reply_notice(self, message):
 		self.server.notice(self.message.destination, message)
 
+	def get_ircnet(self):
+		return self.server
+
+	def get_ircnet_name(self):
+		return self.server.ircnet
+
 	##
 	# Delegate all other methods to the @link controllers.irccontroller.IRCController IRCController @endlink
 	def __getattr__(self, attr):

@@ -1,4 +1,4 @@
-from channel import Channel
+from models.channel import Channel
 
 class Network:
 	def __init__(self, name):

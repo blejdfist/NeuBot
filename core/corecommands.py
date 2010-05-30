@@ -3,6 +3,7 @@ from lib import Logger
 from lib.util import TableFormatter
 
 from controllers.aclcontroller import ACLController
+from controllers.plugincontroller import PluginLoadError, PluginUnloadError
 
 class CoreCommands(Plugin):
 	def __init__(self):
@@ -29,7 +30,7 @@ class CoreCommands(Plugin):
 
 			masters = self.config.get('masters')
 			if masters:
-				masterAccess = reduce(lambda x,y : x or y, [irc.message.source.is_matching(hostmask) for hostmask in masters])
+				masterAccess = reduce(lambda x, y : x or y, [irc.message.source.is_matching(hostmask) for hostmask in masters])
 			else:
 				masterAccess = False
 
@@ -75,10 +76,10 @@ class CoreCommands(Plugin):
 					irc.notice(irc.message.source.nick, plugin.name + " - " + command)
 
 				# Filter out empty lines
-				lines = filter(lambda x : len(x) > 0, doc.splitlines())
+				lines = [line for line in doc.splitlines() if len(line) > 0]
 
 				# Find minimum whitespace so we can normalize doc-comment
-				min_whitespace = min(map(lambda x : len(x) - len(x.lstrip()), lines))
+				min_whitespace = min([len(x) - len(x.lstrip()) for x in lines])
 
 				for line in lines:
 					# Tweak whitespace and replace tabs with spaces
@@ -97,18 +98,21 @@ class CoreCommands(Plugin):
 	def cmd_debug(self, irc, params):
 		"""
 		Enable or disable debugging
-			debug [enable|disable]"""
+			debug [1|2|3|off]
+		"""
 
 		if len(params) == 0:
 			irc.reply("Not enough parameters")
 			return
 
-		if params[0] == 'enable':
-			Logger.enable_debug(True)
-			irc.reply("Debugging enabled")
-		elif params[0] == 'disable':
-			Logger.enable_debug(False)
+		if params[0] == 'off':
+			Logger.set_loglevel('FATAL')
 			irc.reply("Debugging disabled")
+		elif int(params[0]) in [1,2,3]:
+			num_level = int(params[0])
+			level = ["DEBUGL1", "DEBUGL2", "DEBUGL3"][num_level - 1]
+			Logger.set_loglevel(level)
+			irc.reply("Debugging enabled at level %d" % num_level)
 		else:
 			irc.reply("Invalid option")
 
@@ -124,9 +128,9 @@ class CoreCommands(Plugin):
 			return
 
 		try:
-			self.plugin.load_plugin(params[0])
-			irc.reply("Plugin loaded")
-		except Exception, e:
+			if self.plugin.load_plugin(params[0]):
+				irc.reply("Plugin loaded")
+		except PluginLoadError as e:
 			irc.reply(e)
 
 	def cmd_reload(self, irc, params):
@@ -139,7 +143,7 @@ class CoreCommands(Plugin):
 		try:
 			self.plugin.reload_plugin(params[0])
 			irc.reply("Plugin (re)loaded")
-		except Exception, e:
+		except (PluginLoadError, PluginUnloadError) as e:
 			irc.reply(e)
 
 	def cmd_unload(self, irc, params):
@@ -152,7 +156,7 @@ class CoreCommands(Plugin):
 		try:
 			self.plugin.unload_plugin(params[0])
 			irc.reply("Plugin unloaded")
-		except Exception, e:
+		except PluginUnloadError as e:
 			irc.reply(e)
 
 

@@ -47,5 +47,5 @@ class IRCUser:
 			("^" + hostnameReg + "$", self.hostname)
 		]
 
-		return reduce(lambda x,y : (x and y), [re.match(reg, str) != None for (reg,str) in searches])
+		return reduce(lambda x, y : (x and y), [re.match(reg, string) != None for (reg, string) in searches])
 

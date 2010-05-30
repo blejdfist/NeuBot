@@ -19,7 +19,7 @@
 #
 # Copyright (c) 2010, Jim Persson, All rights reserved.
 
-from models import Network, Channel, IRCMessage, IRCUser
+from models import Channel, IRCMessage
 from controllers.usercontroller import UserController
 from controllers.configcontroller import ConfigController
 from lib.net.netsocket import AsyncBufferedNetSocket, ConnectionFailedException
@@ -95,7 +95,7 @@ class IRCController:
 	def schedule_rejoin(self, channel):
 		# Schedule bot to rejoin channel
 		rejoin_channel_time = self.config.get('irc.rejoin_channel_time')
-		Logger.info("Scheduling rejoin of channel %s in %d seconds" % (channel.name, rejoin_channel_time))
+		Logger.debug2("Scheduling rejoin of channel %s in %d seconds" % (channel.name, rejoin_channel_time))
 		kwargs = {
 			"channel": channel.name,
 			"key": channel.password,
@@ -306,7 +306,7 @@ class IRCController:
 			message = IRCMessage(line, self.usercontroller)
 			self.eventcontroller.dispatch_event(self, message)
 
-		except Exception, e:
+		except Exception as e:
 			Logger.warning("Exception: %s" % e)
 
 	def _handle_connect(self, socket):
@@ -455,6 +455,8 @@ class IRCController:
 		else:
 			cmd = "JOIN " + channel
 
+		Logger.info("Joining channel %s" % channel)
+
 		dispatcher = IRCCommandDispatcher(self, self.eventcontroller)
 		success = dispatcher.send_command_and_wait(
 			cmd, 
@@ -477,6 +479,7 @@ class IRCController:
 
 		# The join failed, reschedule it for later
 		if not success:
+			Logger.info("Failed to join channel %s. Will retry later." % channel)
 			chan = Channel(channel, key)
 			self.schedule_rejoin(chan)
 

@@ -1,5 +1,5 @@
 import readline
-from commandparser import CommandParser
+from lib.util.commandparser import CommandParser
 
 ##
 # @class CommandShell

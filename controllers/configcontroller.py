@@ -38,6 +38,8 @@ class ConfigController(Singleton):
 			"masters": [],
 			"coreplugins": ["aclcommands", "corecommands"],
 			"plugins": [],
+			"plugin_paths": ["plugins"],
+			"log.level": "FATAL",
 
 			"irc.pong_timeout":            180,		# Time of no ping/pong until bot sends it's own PING to server
 			"irc.pong_disconnect_time":    300,		# Time of no ping/pong until bot tries to reconnect

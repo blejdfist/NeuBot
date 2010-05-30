@@ -32,7 +32,7 @@ if options.plugins:
 while True:
 	try:
 		input = raw_input("Simulator# > ")
-	except EOFError:
+	except (EOFError, KeyboardInterrupt):
 		print "quit"
 		break
 

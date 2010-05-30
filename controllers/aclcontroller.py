@@ -21,6 +21,8 @@
 
 import sqlite3
 
+from controllers.configcontroller import ConfigController
+
 from lib import Logger
 from models import IRCUser
 
@@ -28,6 +30,7 @@ from models import IRCUser
 class ACLController:
 	def __init__(self, database = 'data/acl.db'):
 		self.db = database
+		self.config = ConfigController()
 
 		try:
 			conn = sqlite3.connect(self.db)
@@ -49,14 +52,17 @@ class ACLController:
 			if not self._user_exists("any"):
 				self.add_user("any")
 				self.user_add_hostmask("any", "*!*@*")
-				#conn.execute("INSERT INTO acl_aro (name, type) VALUES ('any', 'user')")
-				#conn.execute("INSERT INTO acl_user_hostmasks (aro_name, hostmask) VALUES ('any', '*!*@*')")
-				#conn.commit()
-		except Exception, e:
-			print e
-			Logger.fatal("Unable to create ACL database")
+
+		except sqlite3.Error as e:
+			Logger.fatal("Unable to create ACL database: %s" % e)
 
 	def check_access(self, identity, context):
+		masters = self.config.get('masters')
+		master_access = reduce(lambda x, y : x or y, [identity.is_matching(hostmask) for hostmask in masters])
+
+		if master_access:
+			return True
+
 		result = self._query("SELECT hostmask FROM list_access WHERE context = ?", (context,))
 		if result:
 			for (row,) in result:
@@ -75,7 +81,7 @@ class ACLController:
 			conn.commit()
 
 			return result
-		except Exception, e:
+		except sqlite3.Error as e:
 			Logger.warning("Query error (%s) %s: %s" % (querystring, parameters, e))
 			return None
 
@@ -111,7 +117,7 @@ class ACLController:
 			raise Exception("Unable to add group %s" % (groupname))
 
 	def del_group(self, groupname):
-		if not self._GroupExists(groupname):
+		if not self._group_exists(groupname):
 			raise Exception("No such group")
 
 		if self._query("DELETE FROM acl_aro WHERE name = ? AND type = 'group'", (groupname,)) is None:
@@ -161,7 +167,7 @@ class ACLController:
 		if not self._group_exists(groupname):
 			raise Exception("No such group")
 
-		result = self._query("SELECT aro_name_1 FROM acl_memberships WHERE aro_name_1 = ? AND aro_name_2 = ?", (username,groupname))
+		result = self._query("SELECT aro_name_1 FROM acl_memberships WHERE aro_name_1 = ? AND aro_name_2 = ?", (username, groupname))
 		if not result is None:
 			if len(result) != 0:
 				raise Exception("User %s is already a member of %s" % (username, groupname))
@@ -176,7 +182,7 @@ class ACLController:
 		if not self._group_exists(groupname):
 			raise Exception("No such group")
 
-		result = self._query("SELECT aro_name_1 FROM acl_memberships WHERE aro_name_1 = ? AND aro_name_2 = ?", (username,groupname))
+		result = self._query("SELECT aro_name_1 FROM acl_memberships WHERE aro_name_1 = ? AND aro_name_2 = ?", (username, groupname))
 		if not result is None:
 			if len(result) != 1:
 				raise Exception("User %s is not a member %s" % (username, groupname))
@@ -259,11 +265,11 @@ class ACLController:
 
 		return info
 
-	def group_get_members(self, groupname):
+	def get_group_members(self, groupname):
 		result = self._query("SELECT aro_name_1 FROM acl_memberships WHERE aro_name_2 = ?", (groupname,))
 
 		if result is None or len(result) == 0:
-			raise Exception("No such group. Or group have no members")
+			raise Exception("No such group. Or group have no members.")
 		else:
 			return [row[0] for row in result]
 
@@ -273,7 +279,7 @@ class ACLController:
 		if not result is None and len(result) != 0:
 			return [row[0] for row in result]
 		else:
-			raise Exception("There are no users")
+			return []
 
 	def get_groups(self):
 		result = self._query("SELECT name FROM acl_aro WHERE type = 'group'")
@@ -281,4 +287,4 @@ class ACLController:
 		if not result is None and len(result) != 0:
 			return [row[0] for row in result]
 		else:
-			raise Exception("There are no groups")
+			return []

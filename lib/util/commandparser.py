@@ -17,6 +17,9 @@
 #
 # Copyright (c) 2007-2008, Jim Persson, All rights reserved.
 
+class CommandError(Exception):
+	pass
+
 ## @brief Parse a command string and execute functions depending on result
 class CommandParser:
 	## @brief Constructor

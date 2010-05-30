@@ -20,55 +20,83 @@
 import traceback
 import time
 
-class Callable:
-	def __init__(self, foo):
-		self.__call__ = foo
-
 class Logger:
-	_debug = False
+	log_level = 3
 
-	def enable_debug(enable = True):
-		Logger._debug = enable
+	# Levels (numeric_level, display)
+	levels = {
+		'INFO':    (0,"\033[34mINFO\033[0m   "),
+		'WARNING': (1,"\033[33mWARNING\033[0m"),
+		'ERROR':   (2,"\033[31mERROR\033[0m  "),
+		'FATAL':   (3,"\033[41mFATAL\033[0m  "),
+		'DEBUGL1': (4,"\033[35mDEBUGL1\033[0m"),
+		'DEBUGL2': (5,"\033[35mDEBUGL2\033[0m"),
+		'DEBUGL3': (6,"\033[35mDEBUGL3\033[0m"),
+	}
 
-	def is_debug():
-		return Logger._debug
+	def __init__(self):
+		pass
 
-	def log(msg, level = 'NORMAL'):
-		level_str = level.ljust(7)
-		timeString = time.strftime("%H:%M:%S")
+	@classmethod
+	def enable_debug(cls, enable = True):
+		if enable:
+			Logger.set_loglevel('DEBUGL1')
+		else:
+			Logger.set_loglevel('FATAL')
 
-		colors = {
-			'NORMAL': 0,
-			'INFO':   34,
-			'WARNING':33,
-			'ERROR':  31,
-			'DEBUG':  35,
-			'FATAL':  41,
-		}
-		level = "\033[%dm%s\033[0m" % (colors[level], level_str)
-		print "%s [%s]: %s" % (timeString, level, msg)
+	@classmethod
+	def set_loglevel(cls, level):
+		numeric, _ = cls.levels[level.upper()]
+		cls.log_level = numeric
 
-	def log_traceback(cls):
-		if Logger._debug:
-			lines = traceback.format_exc().splitlines()
+	@classmethod
+	def is_debug(cls):
+		return cls.log_level >= 4
 
-			for line in lines:
-				if cls:
-					Logger.debug(cls.__class__.__name__ + ": " + line)
-				else:
-					Logger.debug(line)
+	@classmethod
+	def log(cls, msg, level = 'INFO'):
+		time_str = time.strftime("%H:%M:%S")
+		numeric_level, level_display = cls.levels[level]
 
-	def info(msg):
+		if numeric_level <= cls.log_level:
+			print "%s [%s]: %s" % (time_str, level_display, msg)
+
+	@classmethod
+	def log_traceback(cls, instance):
+		lines = traceback.format_exc().splitlines()
+
+		for line in lines:
+			if cls:
+				Logger.warning(instance.__class__.__name__ + ": " + line)
+			else:
+				Logger.warning(line)
+
+	@classmethod
+	def info(cls, msg):
 		Logger.log(msg, 'INFO')
 
-	def debug(msg):
-		if Logger._debug:
-			Logger.log(msg, 'DEBUG')
+	@classmethod
+	def debug(cls, msg):
+		Logger.log(msg, 'DEBUGL1')
 
-	def error(msg):
+	@classmethod
+	def debug1(cls, msg):
+		Logger.log(msg, 'DEBUGL1')
+
+	@classmethod
+	def debug2(cls, msg):
+		Logger.log(msg, 'DEBUGL2')
+
+	@classmethod
+	def debug3(cls, msg):
+		Logger.log(msg, 'DEBUGL3')
+
+	@classmethod
+	def error(cls, msg):
 		Logger.log(msg, 'ERROR')
 
-	def fatal(msg):
+	@classmethod
+	def fatal(cls, msg):
 		lines = traceback.format_exc().splitlines()
 
 		for line in lines:
@@ -76,16 +104,6 @@ class Logger:
 
 		Logger.log(msg, 'FATAL')
 
-	def warning(msg):
+	@classmethod
+	def warning(cls, msg):
 		Logger.log(msg, 'WARNING')
-
-	enable_debug = Callable(enable_debug)
-	is_debug= Callable(is_debug)
-	log_traceback = Callable(log_traceback)
-	log     = Callable(log)
-	debug   = Callable(debug)
-	info    = Callable(info)
-	error   = Callable(error)
-	warning = Callable(warning)
-	fatal   = Callable(fatal)
-

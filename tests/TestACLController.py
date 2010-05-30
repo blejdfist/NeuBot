@@ -38,7 +38,13 @@ class TestACLController(unittest.TestCase):
 		self.acl.user_del_hostmask('theuser', '*!testfisk@otherdomain.tld')
 
 	def testAddDelGroups(self):
-		pass
+		self.acl.add_group("mygroup")
+		self.acl.del_group("mygroup")
+
+		self.acl.add_group("duplicate")
+		self.assertRaises(Exception, self.acl.add_group, "duplicate")
+
+		self.assertRaises(Exception, self.acl.del_group, "nonexistant")
 
 	def testMatchHostmasks(self):
 		self.acl.add_user('theuser')

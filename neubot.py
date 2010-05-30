@@ -23,13 +23,13 @@ from controllers.eventcontroller import EventController
 from controllers.plugincontroller import PluginController
 from controllers.configcontroller import ConfigController
 from controllers.datastorecontroller import DatastoreController
+from controllers.ircnetscontroller import IRCNetsController
 
 from lib.logger import Logger
 
 from models import Channel
 from models import Server
 
-import time
 import threading
 
 ##
@@ -58,6 +58,11 @@ import threading
 #
 #         # Put a value in the data store
 #         self.store.put("a_list", [1,2,3,4])
+#
+#     # This method is called when the plugin is unloaded
+#     # it's VERY important that you clean up any threads etc that the plugin is using here
+#     def cleanup(self):
+#         pass
 #
 #     def cmd_mycommand(self, irc, params):
 #         """Does nothing special"""
@@ -103,7 +108,8 @@ import threading
 
 ## 
 # Bot entrypoint
-class NeuerBot:
+class NeuBot:
+	"""NeuBot"""
 	def __init__(self):
 		self.eventcontroller   = EventController()
 		self.plugincontroller  = PluginController()
@@ -121,7 +127,7 @@ class NeuerBot:
 		# Initialize data store
 		DatastoreController().set_driver(self.config.get('datastore'))
 
-		Logger.enable_debug(self.config.get('debug'))
+		Logger.set_loglevel(self.config.get('log.level'))
 
 		for plugin in self.config.get('coreplugins'):
 			Logger.info("Loading core plugin '%s'" % plugin)
@@ -159,15 +165,14 @@ class NeuerBot:
 			self.ircnetscontroller.add_ircnet(irc.ircnet, irc)
 
 	def stop(self):
-		for irc in self.irccontrollers:
-			irc.disconnect()
+		self.ircnetscontroller.disconnect_all()
 
 if __name__ == "__main__":
 	bot = None
 	try:
 		Logger.info("Initializing...")
 
-		bot = NeuerBot()
+		bot = NeuBot()
 		bot.start()
 
 		while not bot.quit_event.isSet():

@@ -24,7 +24,7 @@ EFNet = {
 
 Bot = {
 	"ircnets": 		[EFNet],
-	"debug": 		False,
+	"log.level":    "DEBUGL3",
 	"datastore":    "yserial://data/store.db",
 	"masters":		[
 		"*!blejdfist@nurd.se", 

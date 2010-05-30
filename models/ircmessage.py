@@ -18,7 +18,7 @@
 # Copyright (c) 2007-2008, Jim Persson, All rights reserved.
 
 import re
-from ircuser import IRCUser
+from models.ircuser import IRCUser
 
 class IRCMessage:
 	# From a user

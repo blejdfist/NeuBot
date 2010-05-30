@@ -27,11 +27,6 @@ from lib.util import Singleton
 import threading
 import re
 
-"""
-	register_system_event(system_event_code, callback)
-	dispatch_system_event(system_event_code, params)
-"""
-
 ## 
 # The EventController handles events and calls the appropriate callbacks when the occur
 #
@@ -41,9 +36,9 @@ import re
 class EventController(Singleton):
 	## @brief Constructor
 	def construct(self):
-		self.commandCallbacks = {}
-		self.eventCallbacks = {}
-		self.syseventCallbacks = {}
+		self.commandCallbacks = {}		# "command" : [(object_instance, callback, privileged), ...]
+		self.eventCallbacks = {}		# "event"   : [(object_instance, callback), ...]
+		self.syseventCallbacks = {}		# "sysevent": [(object_instance, callback), ...]
 
 		# {obj: timer}
 		self.moduleTimers = {}
@@ -57,32 +52,18 @@ class EventController(Singleton):
 	# @param obj Module instance for which callbacks should be released
 	# @warning This should NEVER be called directly by a module
 	def release_related(self, obj):
-		# Free command callbacks
-		for command in self.commandCallbacks.keys():
-			for entry in self.commandCallbacks[command]:
-				(cbobj, callback, privileged) = entry
-				if cbobj == obj:
-					self.commandCallbacks[command].remove(entry)
-					if len(self.commandCallbacks[command]) == 0:
-						del self.commandCallbacks[command]
+		for table in [self.commandCallbacks, 
+					  self.eventCallbacks, 
+					  self.syseventCallbacks]:
 
-		# Free event callbacks
-		for event in self.eventCallbacks.keys():
-			for entry in self.eventCallbacks[event]:
-				(cbobj, callback) = entry
-				if cbobj == obj:
-					self.eventCallbacks[event].remove(entry)
-					if len(self.eventCallbacks[event]) == 0:
-						del self.eventCallbacks[event]
+			for key in table.keys():
+				entries = [entry for entry in table[key] if entry[0] == obj]
 
-		# Free system event callbacks
-		for event in self.syseventCallbacks.keys():
-			for entry in self.syseventCallbacks[event]:
-				(cbobj, callback) = entry
-				if cbobj == obj:
-					self.syseventCallbacks[event].remove(entry)
-					if len(self.syseventCallbacks[event]) == 0:
-						del self.eventCallbacks[event]
+				for entry in entries:
+					table[key].remove(entry)
+
+				if len(table[key]) == 0:
+					del table[key]
 
 		# Stop timers
 		if self.moduleTimers.has_key(obj):
@@ -101,7 +82,7 @@ class EventController(Singleton):
 			callback = data["callback"]
 			try:
 				callback(*data["args"], **data["kwargs"])
-			except Exception, e:
+			except Exception as e:
 				Logger.warning("Timer caught exception: %s" % e)
 
 			# Free timer
@@ -182,26 +163,21 @@ class EventController(Singleton):
 
 		callbacks = self.get_command_callbacks(command)
 
+		Logger.debug1("Found %d receiver(s) for command '%s'" % (len(callbacks), command))
+
 		if callbacks:
 			interface = IRCMessageController(irc, msg)
 
-			# Check access
-			masterAccess = False
-
-			if self.config:
-				masters = self.config.get('masters')
-				masterAccess = reduce(lambda x,y : x or y, [msg.source.is_matching(hostmask) for hostmask in masters])
-			
 			for (obj, callback, privileged) in callbacks:
 				try:
 					# This will abort instantly as soon as a command without access is found
-					if privileged and not masterAccess:
+					if privileged:
 						if not self.acl.check_access(msg.source, command.lower()):
 							interface.reply("Access denied")
 							return
 
 					callback(interface, params)
-				except Exception, e:
+				except Exception as e:
 					Logger.log_traceback(callback.im_self)
 
 	## @brief Register event callback
@@ -241,11 +217,11 @@ class EventController(Singleton):
 		def dispatcher_event_thread(callback, params):
 			try:
 				callback(params)
-			except Exception, e:
+			except:
 				Logger.log_traceback(callback.im_self)
 
 		if self.syseventCallbacks.has_key(key):
-			for (obj, callback) in self.syseventCallbacks[key]:
+			for (_, callback) in self.syseventCallbacks[key]:
 				thread = threading.Thread(target = dispatcher_event_thread, kwargs = {"callback": callback, "params": params})
 				thread.start()
 
@@ -256,7 +232,7 @@ class EventController(Singleton):
 		def dispatcher_event_thread(callback, interface):
 			try:
 				callback(interface)
-			except Exception, e:
+			except:
 				Logger.log_traceback(callback.im_self)
 
 		if not msg.command:

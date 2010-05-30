@@ -1,4 +1,4 @@
-from ircuser import IRCUser
+from models.ircuser import IRCUser
 
 class Channel:
 	def __init__(self, name, password = None):

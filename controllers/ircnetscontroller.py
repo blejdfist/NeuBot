@@ -20,7 +20,6 @@
 # Copyright (c) 2010, Jim Persson, All rights reserved.
 
 from lib.util import Singleton
-import sys
 
 ##
 # Contains the configuration
@@ -37,3 +36,7 @@ class IRCNetsController(Singleton):
 
 	def get_ircnet_names(self):
 		return self.ircnets.keys()
+
+	def disconnect_all(self):
+		for ircnet in self.ircnets.keys():
+			self.ircnets[ircnet].disconnect()

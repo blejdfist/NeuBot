@@ -78,13 +78,13 @@ class FakeSocket:
 			match = re.match("PRIVMSG (.*?) :(.*)", data)
 			channel, message = match.groups()
 
-			print "[%s:%s] %s" % (self.bot_nick, channel, message)
+			print "\033[1;37m[%s:PRIVMSG %s]\033[0m %s" % (self.bot_nick, channel, message)
 
 		elif cmd == "NOTICE":
 			match = re.match("NOTICE (.*?) :(.*)", data)
 			channel, message = match.groups()
 
-			print "<%s:%s> %s" % (self.bot_nick, channel, message)
+			print "\033[1;35m<%s:NOTICE %s>\033[0m %s" % (self.bot_nick, channel, message)
 
 		elif cmd == "PING":
 			match = re.match("PING (.*)", data)

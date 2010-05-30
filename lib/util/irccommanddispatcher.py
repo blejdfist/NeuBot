@@ -46,12 +46,12 @@ class IRCCommandDispatcher:
 		self.eventcontroller.release_related(self)
 
 		if not self.event.is_set():
-			Logger.debug("Command timed out")
+			Logger.debug2("Command timed out")
 			return False
 
 		if self.success:
-			Logger.debug("Command was successful")
+			Logger.debug2("Command was successful")
 			return True
 		
-		Logger.debug("Command failed")
+		Logger.debug2("Command failed")
 		return False
