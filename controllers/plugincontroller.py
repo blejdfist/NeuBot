@@ -102,8 +102,9 @@ class PluginController(Singleton):
 
 		ignore = shutil.ignore_patterns("*.pyc", "__init__.py")
 
-		#available_modules = []
+		Logger.debug2("Trying to find plugin %s" % name)
 		for search_dir in search_dirs:
+			Logger.debug3("Searching path %s for plugin %s" % (search_dir, name))
 			for root, dirs, files in os.walk(search_dir):
 				ignored_files = ignore(root, files)
 				files = filter(lambda x : x not in ignored_files, files)

@@ -59,6 +59,13 @@ class IRCMessage:
 	def __str__(self):
 		return self.raw_msg
 
+	##
+	# Retrieve the raw (unparsed) arguments for the command that triggered the event.
+	# This may be the text sent by a user in the event of a PRIVMSG or bot command event.
+	# @return Raw arguments
+	def get_raw_arguments(self):
+		return self.params
+
 	def _parse_usermsg1(self, msg):
 		#print "usrmsg1 %s" % (msg,)
 		# If we have a usercontroller, use it

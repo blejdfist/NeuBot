@@ -66,7 +66,7 @@ class Logger:
 		lines = traceback.format_exc().splitlines()
 
 		for line in lines:
-			if cls:
+			if instance:
 				Logger.warning(instance.__class__.__name__ + ": " + line)
 			else:
 				Logger.warning(line)

@@ -68,22 +68,22 @@ class IRCController:
 		self.keepalive_thread_exit_event = None
 
 		# Register events
-		self.eventcontroller.register_event("PING",     self.event_ping)
-		self.eventcontroller.register_event("PONG",     self.event_pong)
-		self.eventcontroller.register_event("433",      self.event_nickinuse)
-		self.eventcontroller.register_event("JOIN",     self.event_join)
-		self.eventcontroller.register_event("PART",     self.event_part)
-		self.eventcontroller.register_event("KICK",     self.event_kick)
-		self.eventcontroller.register_event("QUIT",     self.event_quit)
-		self.eventcontroller.register_event("NICK",     self.event_nick)
-		self.eventcontroller.register_event("TOPIC",    self.event_topic)
+		self.eventcontroller.register_event("PING",     self._event_ping)
+		self.eventcontroller.register_event("PONG",     self._event_pong)
+		self.eventcontroller.register_event("433",      self._event_nickinuse)
+		self.eventcontroller.register_event("JOIN",     self._event_join)
+		self.eventcontroller.register_event("PART",     self._event_part)
+		self.eventcontroller.register_event("KICK",     self._event_kick)
+		self.eventcontroller.register_event("QUIT",     self._event_quit)
+		self.eventcontroller.register_event("NICK",     self._event_nick)
+		self.eventcontroller.register_event("TOPIC",    self._event_topic)
 
-		self.eventcontroller.register_event(ircdef.RPL_TOPIC,    self.event_topic_reply)
-		self.eventcontroller.register_event(ircdef.RPL_NAMREPLY, self.event_channel_names)
-		self.eventcontroller.register_event(ircdef.RPL_WHOREPLY, self.event_who_reply)
-		self.eventcontroller.register_event(ircdef.RPL_MYINFO,   self.event_registration)
+		self.eventcontroller.register_event(ircdef.RPL_TOPIC,    self._event_topic_reply)
+		self.eventcontroller.register_event(ircdef.RPL_NAMREPLY, self._event_channel_names)
+		self.eventcontroller.register_event(ircdef.RPL_WHOREPLY, self._event_who_reply)
+		self.eventcontroller.register_event(ircdef.RPL_MYINFO,   self._event_registration)
 
-	def schedule_reclaimnick(self):
+	def _schedule_reclaimnick(self):
 		# Schedule bot to rejoin channel
 		reclaim_nick_time = self.config.get('irc.reclaim_nick_time')
 		Logger.info("Scheduling reclaim of nick in %d seconds" % (reclaim_nick_time,))
@@ -92,7 +92,7 @@ class IRCController:
 		}
 		self.eventcontroller.register_timer(self.set_nick, reclaim_nick_time, kwargs = kwargs)
 
-	def schedule_rejoin(self, channel):
+	def _schedule_rejoin(self, channel):
 		# Schedule bot to rejoin channel
 		rejoin_channel_time = self.config.get('irc.rejoin_channel_time')
 		Logger.debug2("Scheduling rejoin of channel %s in %d seconds" % (channel.name, rejoin_channel_time))
@@ -102,12 +102,12 @@ class IRCController:
 		}
 		self.eventcontroller.register_timer(self.join, rejoin_channel_time, kwargs = kwargs)
 
-	def event_topic(self, irc):
+	def _event_topic(self, irc):
 		for channel in self.channels:
 			if channel.name == irc.message.destination:
 				channel.topic = irc.message.params
 
-	def event_topic_reply(self, irc):
+	def _event_topic_reply(self, irc):
 		match = re.match("^(.*?) :(.*)$", irc.message.params)
 		if not match:
 			return
@@ -120,7 +120,7 @@ class IRCController:
 
 	##
 	# Called when someone changes his/her nick
-	def event_nick(self, irc):
+	def _event_nick(self, irc):
 		user = irc.message.source
 		new_nick = irc.message.params
 
@@ -132,7 +132,7 @@ class IRCController:
 
 	##
 	# Handle server reply from WHO-command
-	def event_who_reply(self, irc):
+	def _event_who_reply(self, irc):
 		match = re.match("(.*?) (.*?) (.*?) (.*?) (.*?) (.*?) :[0-9]+ (.*)", irc.message.params)
 		if not match:
 			Logger.warning("Invalid RPL_WHOREPLY received")
@@ -150,19 +150,16 @@ class IRCController:
 				# Found, now add the user to that channel
 				channel.add_user(user)
 
-	def event_quit(self, irc):
+	def _event_quit(self, irc):
 		# User quit so remove him/her from all
 		# channels
 		for chan in self.channels:
-			try:
-				chan.del_user(irc.message.source)
-			except:
-				pass
+			chan.del_user(irc.message.source)
 
 		# Also remove user from global nick list
 		self.usercontroller.del_user(irc.message.source)
 
-	def event_join(self, irc):
+	def _event_join(self, irc):
 		who = irc.message.source
 		channel_name = irc.message.params
 		channel = None
@@ -187,7 +184,7 @@ class IRCController:
 			channel.add_user(who)
 			Logger.info("User %s joined %s" % (who.nick, channel_name))
 
-	def event_part(self, irc):
+	def _event_part(self, irc):
 		who = irc.message.source
 		channel_name = irc.message.params
 		channel = None
@@ -210,7 +207,7 @@ class IRCController:
 			channel.del_user(who)
 			Logger.info("User %s parted %s" % (who.nick, channel_name))
 
-	def event_channel_names(self, irc):
+	def _event_channel_names(self, irc):
 		match = re.match("([=\*@]) ([&#\+!]\S+) :(.*)", irc.message.params)
 		if not match:
 			Logger.warning("Invalid RPL_NAMREPLY from server")
@@ -233,7 +230,7 @@ class IRCController:
 				nick_status = status[nick[0]]
 				nick = nick[1:]
 
-	def event_kick(self, irc):
+	def _event_kick(self, irc):
 		channel_name = irc.message.destination
 		who = irc.message.source
 		got_kicked = irc.message.params
@@ -256,20 +253,20 @@ class IRCController:
 			# We got kicked
 			channel.is_joined = False
 			Logger.info("Kicked from %s by %s" % (channel_name, who))
-			self.schedule_rejoin(channel)
+			self._schedule_rejoin(channel)
 		else:
 			# It was someone else
 			channel.del_user(got_kicked)
 			Logger.info("User %s got kicked from %s" % (got_kicked, channel_name))
 
-	def event_ping(self, irc):
+	def _event_ping(self, irc):
 		self.pong_server(irc.message.params)
 		self.last_ping_pong_ts = time.time()
 
-	def event_pong(self, irc):
+	def _event_pong(self, irc):
 		self.last_ping_pong_ts = time.time()
 
-	def event_nickinuse(self, irc):
+	def _event_nickinuse(self, irc):
 		if self.currentnick == None:
 			if len(self.altnicks) == 0:
 				altnick = self.nick
@@ -288,15 +285,15 @@ class IRCController:
 			self.set_nick(altnick)
 		else:
 			if self.config.get('irc.reclaim_nick_if_lost'):
-				self.schedule_reclaimnick()
+				self._schedule_reclaimnick()
 
-	def event_registration(self, irc):
+	def _event_registration(self, irc):
 		self.currentnick = self.pendingnick
 		self.join_all_channels()
 
 		# We didn't get the nick we wanted
 		if self.currentnick != self.nick and self.config.get('irc.reclaim_nick_if_lost'):
-			self.schedule_reclaimnick()
+			self._schedule_reclaimnick()
 
 	def _handle_data(self, line, socket):
 		try:
@@ -322,8 +319,8 @@ class IRCController:
 
 		# Dispatch keepalive-thread
 		self.keepalive_thread_exit_event = threading.Event()
-		self.keepalive_thread = threading.Thread(target = self.thread_keepalive)
-		self.keepalive_thread.start()
+		keepalive_thread = threading.Thread(target = self._thread_keepalive)
+		keepalive_thread.start()
 
 	def _handle_disconnect(self, socket):
 		Logger.info("IRC connection closed")
@@ -353,10 +350,13 @@ class IRCController:
 
 		self.connection.send(data + "\r\n")
 
+	def get_ircnet_name(self):
+		return self.ircnet
+
 	def is_connected(self):
 		return self.connected
 
-	def thread_keepalive(self):
+	def _thread_keepalive(self):
 		Logger.debug("Keepalive-thread started")
 		pong_disconnect_time = self.config.get("irc.pong_disconnect_time")
 		pong_timeout = self.config.get("irc.pong_timeout")
@@ -369,7 +369,7 @@ class IRCController:
 				self.reconnect()
 				break
 			elif time_since_ping_pong > pong_timeout:
-				Logger.info("No PONG for %d seconds. Sending PING." % (time_since_ping_pong,))
+				Logger.debug1("No PONG for %d seconds. Sending PING." % (time_since_ping_pong,))
 				self.ping_server()
 
 			self.keepalive_thread_exit_event.wait(10)
@@ -397,7 +397,7 @@ class IRCController:
 
 		try:
 			self.connection.connect()
-		except ConnectionFailedException, e:
+		except ConnectionFailedException:
 			# We failed to connect, schedule a retry
 			reconnect_time = self.config.get('irc.reconnect_time')
 			Logger.error("Failed to connect to %s (%s), retrying in %s seconds..." % (self.ircnet, server, reconnect_time))
@@ -481,7 +481,7 @@ class IRCController:
 		if not success:
 			Logger.info("Failed to join channel %s. Will retry later." % channel)
 			chan = Channel(channel, key)
-			self.schedule_rejoin(chan)
+			self._schedule_rejoin(chan)
 
 	##
 	# Leave a channel

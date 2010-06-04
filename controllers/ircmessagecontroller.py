@@ -41,11 +41,30 @@ class IRCMessageController:
 	def reply_notice(self, message):
 		self.server.notice(self.message.destination, message)
 
+	##
+	# Return the instance of the IRCController where the event originated
+	# @return controllers.irccontroller.IRCController instance
 	def get_ircnet(self):
 		return self.server
 
+	##
+	# Return the name of the IRC network where the event originated
+	# @return Name of IRC network
 	def get_ircnet_name(self):
-		return self.server.ircnet
+		return self.server.get_ircnet_name()
+
+	##
+	# Retrieve the contained IRCMessage
+	# @return IRCMessage instance
+	def get_message(self):
+		return self.message
+
+	##
+	# Retrieve the raw (unparsed) arguments for the command that triggered the event.
+	# This may be the text sent by a user in the event of a PRIVMSG or bot command event.
+	# @return Raw arguments
+	def get_raw_params(self):
+		return self.message.get_raw_arguments()
 
 	##
 	# Delegate all other methods to the @link controllers.irccontroller.IRCController IRCController @endlink

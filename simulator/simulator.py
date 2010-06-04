@@ -47,7 +47,7 @@ class Simulator:
 		# Initialize datastore
 		DatastoreController().set_driver("data/simulator.db")
 
-	def load_plugin(self, name, search_dir = "plugins"):
+	def load_plugin(self, name, search_dir = None):
 		self.plugin.load_plugin(name, search_dir)
 
 	def feed_data(self, data):

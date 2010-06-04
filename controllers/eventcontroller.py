@@ -141,7 +141,7 @@ class EventController(Singleton):
 		key = command.lower()
 
 		if not self.commandCallbacks.has_key(key):
-			return None
+			return []
 
 		return self.commandCallbacks[key]
 

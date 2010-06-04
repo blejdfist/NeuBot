@@ -2,6 +2,7 @@
 from simulator import Simulator
 from lib import Logger
 from optparse import OptionParser
+import sys
 
 
 parser = OptionParser()
@@ -26,8 +27,9 @@ if options.plugins:
 		Logger.info("Loading %s" % plugin)
 		try:
 			sim.load_plugin(plugin)
-		except Exception, e:
+		except Exception as e:
 			Logger.log_traceback(sim)
+			sys.exit(1)
 
 while True:
 	try:
