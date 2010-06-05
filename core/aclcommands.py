@@ -72,7 +72,7 @@ class ACLCommands(Plugin):
 			}
 		}
 
-		self.event.register_command("acl", self.cmd_acl, False)
+		self.event.register_command("acl", self.cmd_acl, True)
 
 	def add_user(self, username):
 		self.acl.add_user(username)
