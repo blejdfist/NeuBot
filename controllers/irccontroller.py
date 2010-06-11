@@ -174,12 +174,15 @@ class IRCController:
 				break
 
 		if channel is None:
-			Logger.warning("%s joined unknown channel %s" % (who.nick, channel_name))
-			return
+			Logger.info("%s joined unregistered channel %s. Adding channel." % (who.nick, channel_name))
+			channel = Channel(channel_name)
 
 		if who.nick == self.currentnick:
 			# We joined a channel
 			Logger.info("Joined " + channel_name)
+
+			# We are in this channel
+			channel.is_joined = True
 
 			# Send WHO-message to learn about the users in this channel
 			self.send_raw("WHO " + channel_name)

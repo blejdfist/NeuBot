@@ -18,6 +18,8 @@ class CoreCommands(Plugin):
 		self.event.register_command("reload",  self.cmd_reload, True)
 		self.event.register_command("unload",  self.cmd_unload, True)
 
+		self.event.register_command("join",    self.cmd_join, True)
+
 	def list_commands(self, irc):
 		acl = ACLController()
 		commands = self.event.get_all_commands()
@@ -159,4 +161,18 @@ class CoreCommands(Plugin):
 		except PluginUnloadError as e:
 			irc.reply(e)
 
+	def cmd_join(self, irc, params):
+		"""
+		Join a channel:
+		  !join <channel> [password]"""
 
+		if len(params) not in (1, 2):
+			irc.reply("Invalid number of arguments")	
+			return
+
+		if len(params) == 1:
+			irc.get_ircnet().join(params[0])
+		elif len(params) == 2:
+			irc.get_ircnet().join(params[0], params[1])
+
+		irc.reply("Ok")
