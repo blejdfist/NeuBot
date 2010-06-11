@@ -308,7 +308,7 @@ class IRCController:
 			# can cache users that it sees in it
 			line = unicode(line, 'utf-8', 'ignore')
 
-			Logger.debug3("RECV[%s]: %s" % (self.ircnet, line))
+			Logger.debug3("RECV[%s]: %s" % (self.ircnet, line.strip()))
 
 			message = IRCMessage(line, self.usercontroller)
 			self.eventcontroller.dispatch_event(self, message)
@@ -358,7 +358,7 @@ class IRCController:
 		while self.connected:
 			try:
 				data = self.output_queue.get(timeout=1.0)
-				Logger.debug3("SEND: " + data.strip())
+				Logger.debug3("SEND[%s]: %s" % (self.ircnet, data.strip(),))
 
 				self.connection.send(data)
 				self.output_queue.task_done()
@@ -382,7 +382,6 @@ class IRCController:
 		# Remove any newlines
 		data = data.replace('\n', '').replace('\r', '')
 
-		Logger.debug3("SEND[%s]: %s" % (self.ircnet, data,))
 		self.output_queue.put(data + "\r\n")
 
 	def get_ircnet_name(self):

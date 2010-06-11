@@ -12,7 +12,7 @@ parser.add_option("-d", "--debug",   default=False, action="store_true", dest="d
 (options, args) = parser.parse_args()
 
 if options.debug:
-	Logger.enable_debug()
+	Logger.set_loglevel("DEBUGL2")
 
 sim = Simulator()
 sim.start()

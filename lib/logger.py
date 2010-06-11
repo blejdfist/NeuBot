@@ -18,48 +18,62 @@
 # Copyright (c) 2007-2008, Jim Persson, All rights reserved.
 
 import traceback
+import logging
 import time
 
+# Initialize logging mechanism
+class ColoredFormatter(logging.Formatter):
+	def __init__(self, levels):
+		self.levels = levels
+		format = "%(asctime)s [%(levelname)-8s] %(message)s"
+		logging.Formatter.__init__(self, format)
+
+	def format(self, record):
+		if self.levels.has_key(record.levelname):
+			_, coloredname = self.levels[record.levelname]
+			record.levelname = coloredname
+
+		return logging.Formatter.format(self, record)
+
+	def formatTime(self, record, datefmt):
+		return logging.Formatter.formatTime(self, record, "%H:%M:%S")
+
 class Logger:
-	log_level = 3
+	log_level = logging.INFO
 
 	# Levels (numeric_level, display)
 	levels = {
-		'INFO':    (0,"\033[34mINFO\033[0m   "),
-		'WARNING': (1,"\033[33mWARNING\033[0m"),
-		'ERROR':   (2,"\033[31mERROR\033[0m  "),
-		'FATAL':   (3,"\033[41mFATAL\033[0m  "),
-		'DEBUGL1': (4,"\033[35mDEBUGL1\033[0m"),
-		'DEBUGL2': (5,"\033[35mDEBUGL2\033[0m"),
-		'DEBUGL3': (6,"\033[35mDEBUGL3\033[0m"),
+		'CRITICAL':(logging.FATAL,   "\033[41mFATAL\033[0m  "),
+		'FATAL':   (logging.FATAL,   "\033[41mFATAL\033[0m  "),
+		'ERROR':   (logging.ERROR,   "\033[31mERROR\033[0m  "),
+		'WARNING': (logging.WARNING, "\033[33mWARNING\033[0m"),
+		'INFO':    (logging.INFO,    "\033[34mINFO\033[0m   "),
+		'DEBUGL1': (logging.DEBUG,   "\033[35mDEBUGL1\033[0m"),
+		'DEBUGL2': (logging.DEBUG-1, "\033[35mDEBUGL2\033[0m"),
+		'DEBUGL3': (logging.DEBUG-2, "\033[35mDEBUGL3\033[0m"),
 	}
 
 	def __init__(self):
 		pass
 
 	@classmethod
-	def enable_debug(cls, enable = True):
-		if enable:
-			Logger.set_loglevel('DEBUGL1')
-		else:
-			Logger.set_loglevel('FATAL')
+	def setup_logging(cls):
+		console = logging.StreamHandler()
+		console.setFormatter(ColoredFormatter(cls.levels))
+
+		root_logger = logging.getLogger('')
+		root_logger.addHandler(console)
+		root_logger.setLevel(cls.log_level)
+
+		logging.addLevelName(logging.DEBUG,   'DEBUGL1')
+		logging.addLevelName(logging.DEBUG-1, 'DEBUGL2')
+		logging.addLevelName(logging.DEBUG-2, 'DEBUGL3')
 
 	@classmethod
 	def set_loglevel(cls, level):
 		numeric, _ = cls.levels[level.upper()]
 		cls.log_level = numeric
-
-	@classmethod
-	def is_debug(cls):
-		return cls.log_level >= 4
-
-	@classmethod
-	def log(cls, msg, level = 'INFO'):
-		time_str = time.strftime("%H:%M:%S")
-		numeric_level, level_display = cls.levels[level]
-
-		if numeric_level <= cls.log_level:
-			print "%s [%s]: %s" % (time_str, level_display, msg)
+		logging.getLogger('').setLevel(numeric)
 
 	@classmethod
 	def log_traceback(cls, instance):
@@ -73,37 +87,40 @@ class Logger:
 
 	@classmethod
 	def info(cls, msg):
-		Logger.log(msg, 'INFO')
+		logging.info(msg)
 
 	@classmethod
 	def debug(cls, msg):
-		Logger.log(msg, 'DEBUGL1')
+		logging.log(logging.DEBUG, msg)
 
 	@classmethod
 	def debug1(cls, msg):
-		Logger.log(msg, 'DEBUGL1')
+		logging.log(logging.DEBUG, msg)
 
 	@classmethod
 	def debug2(cls, msg):
-		Logger.log(msg, 'DEBUGL2')
+		logging.log(logging.DEBUG-1, msg)
 
 	@classmethod
 	def debug3(cls, msg):
-		Logger.log(msg, 'DEBUGL3')
+		logging.log(logging.DEBUG-2, msg)
 
 	@classmethod
 	def error(cls, msg):
-		Logger.log(msg, 'ERROR')
+		logging.error(msg)
 
 	@classmethod
 	def fatal(cls, msg):
+		logging.fatal(msg)
 		lines = traceback.format_exc().splitlines()
 
 		for line in lines:
-			Logger.log(line, 'FATAL')
+			logging.fatal(line)
 
-		Logger.log(msg, 'FATAL')
+		logging.fatal(msg)
 
 	@classmethod
 	def warning(cls, msg):
-		Logger.log(msg, 'WARNING')
+		logging.warning(msg)
+
+Logger.setup_logging()

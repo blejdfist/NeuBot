@@ -8,7 +8,6 @@ class TestPluginController(unittest.TestCase):
 	def setUp(self):
 		self.plugin = PluginController()
 		self.config = ConfigController()
-#		Logger.enable_debug(True)
 
 	def tearDown(self):
 		self.plugin = None
