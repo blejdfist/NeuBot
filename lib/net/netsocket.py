@@ -59,6 +59,8 @@ class AsyncBufferedNetSocket:
 		if self.OnDisconnect:
 			self.OnDisconnect(self)
 
+		Logger.debug2("Reader thread exiting")
+
 	def disconnect(self):
 		self.connected = False
 
@@ -128,10 +130,6 @@ class AsyncBufferedNetSocket:
 			try:
 				data = rsockets[0].recv(4096)
 
-				if Logger.is_debug():
-					for line in data.splitlines():
-						Logger.debug3("RECV: " + line.strip())
-
 			except:
 				self.connected = False
 				return
@@ -152,5 +150,8 @@ class AsyncBufferedNetSocket:
 		return line
 
 	def send(self, data):
-		Logger.debug3("SEND: " + data.strip())
-		self.socket.send(data)
+		try:
+			self.socket.send(data)
+		except socket.error as e:
+			Logger.debug2("Send error: %s" % e)
+			self.connected = False

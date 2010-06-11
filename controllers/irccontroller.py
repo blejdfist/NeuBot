@@ -31,6 +31,7 @@ import re
 import random
 import time
 import threading
+import Queue
 
 ##
 # Handles an IRC-connection
@@ -62,6 +63,9 @@ class IRCController:
 
 		# Automatically auto connect unless we say otherwise
 		self.autoreconnect = True
+
+		# Output data queue
+		self.output_queue = Queue.Queue()
 
 		# Last PONG
 		self.last_ping_pong_ts = 0
@@ -300,6 +304,9 @@ class IRCController:
 			# The IRCMessage needs our usercontroller so that it
 			# can cache users that it sees in it
 			line = unicode(line, 'utf-8', 'ignore')
+
+			Logger.debug3("RECV[%s]: %s" % (self.ircnet, line))
+
 			message = IRCMessage(line, self.usercontroller)
 			self.eventcontroller.dispatch_event(self, message)
 
@@ -322,6 +329,9 @@ class IRCController:
 		keepalive_thread = threading.Thread(target = self._thread_keepalive)
 		keepalive_thread.start()
 
+		writer_thread = threading.Thread(target = self._thread_writer)
+		writer_thread.start()
+
 	def _handle_disconnect(self, socket):
 		Logger.info("IRC connection closed")
 		self.connected = False
@@ -339,6 +349,21 @@ class IRCController:
 			Logger.info("Will reconnect in %d seconds..." % reconnect_time)
 			self.eventcontroller.register_timer(self.connect, reconnect_time)
 
+	##
+	# Writer thread
+	def _thread_writer(self):
+		while self.connected:
+			try:
+				data = self.output_queue.get(timeout=1.0)
+				Logger.debug3("SEND: " + data.strip())
+
+				self.connection.send(data)
+				self.output_queue.task_done()
+			except Queue.Empty as e:
+				pass
+
+		Logger.debug2("Writer thread exiting")
+
 	def join_all_channels(self):
 		for channel in self.channels:
 			if not channel.is_joined:
@@ -348,7 +373,14 @@ class IRCController:
 		if type(data) == unicode:
 			data = data.encode('utf-8')
 
-		self.connection.send(data + "\r\n")
+		if len(data) > 512:
+			Logger.warning("Sending data longer than 512 bytes. Length = %d bytes" % (data,))
+
+		# Remove any newlines
+		data = data.replace('\n', '').replace('\r', '')
+
+		Logger.debug3("SEND[%s]: %s" % (self.ircnet, data,))
+		self.output_queue.put(data + "\r\n")
 
 	def get_ircnet_name(self):
 		return self.ircnet
