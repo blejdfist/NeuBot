@@ -156,6 +156,12 @@ class EventController(Singleton):
 	# @param command The command. Example: "mycommand"
 	# @param params Parameters to the command. Example: "param1 param2 param3"
 	def dispatch_command(self, irc, msg, command, params):
+		def dispatcher_command_thread(callback, interface, params):
+			try:
+				callback(interface, params)
+			except:
+				Logger.log_traceback(callback.im_self)
+
 		if params is None:
 			params = []
 		else:
@@ -176,7 +182,9 @@ class EventController(Singleton):
 							interface.reply("Access denied")
 							return
 
-					callback(interface, params)
+					thread = threading.Thread(target = dispatcher_command_thread, 
+					                          kwargs = {"callback": callback, "interface": interface, "params": params})
+					thread.start()
 				except Exception as e:
 					Logger.log_traceback(callback.im_self)
 
@@ -253,4 +261,3 @@ class EventController(Singleton):
 			if match:
 				command, params = match.groups()
 				self.dispatch_command(irc, msg, command, params)
-
