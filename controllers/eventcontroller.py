@@ -24,6 +24,8 @@ from controllers.configcontroller     import ConfigController
 from lib import Logger
 from lib.util import Singleton
 
+from models.arguments import Arguments
+
 import threading
 import re
 
@@ -162,10 +164,7 @@ class EventController(Singleton):
 			except:
 				Logger.log_traceback(callback.im_self)
 
-		if params is None:
-			params = []
-		else:
-			params = params.split()
+		params = Arguments(params)
 
 		callbacks = self.get_command_callbacks(command)
 

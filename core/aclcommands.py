@@ -204,7 +204,7 @@ class ACLCommands(Plugin):
 		    show [users|groups]"""
 
 		try:
-			result = CommandParser(self.parseTree).parse(" ".join(params))
+			result = CommandParser(self.parseTree).parse(str(params))
 			if result:
 				for line in result:
 					irc.reply(line)
