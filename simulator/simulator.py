@@ -62,3 +62,13 @@ class Simulator:
 	def stop(self):
 		self.irc.disconnect()
 
+	##
+	# Wait for all dispatched event threads to complete
+	def wait_for_events(self):
+		self.event.wait_for_pending_events()
+
+	##
+	# Wait for all queued output to be sent to the server
+	# (the simulated socket in this case)
+	def flush(self):
+		self.irc.flush_output()

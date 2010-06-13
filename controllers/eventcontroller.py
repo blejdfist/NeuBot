@@ -50,6 +50,34 @@ class EventController(Singleton):
 
 		self.command_prefix = "!"
 
+		# Number of active dispatched event threads
+		self._pending_events = 0
+		self._pending_events_lock = threading.RLock()
+		self._pending_events_event = threading.Event()
+
+	##
+	# Increment the number of active event threads
+	def _increment_event_threads(self):
+		with self._pending_events_lock:
+			self._pending_events += 1
+			self._pending_events_event.clear()
+
+	##
+	# Decrement the number of active event threads
+	# and signal any waiters if the number of event
+	# threads reaches zero
+	def _decrement_event_threads(self):
+		with self._pending_events_lock:
+			self._pending_events -= 1
+			if self._pending_events == 0:
+				self._pending_events_event.set()
+
+	##
+	# Block until all dispatched events have finished.
+	# This is primarily used by the simulator.
+	def wait_for_pending_events(self):
+		self._pending_events_event.wait()
+
 	## @brief Release callbacks registered by a module
 	# @param obj Module instance for which callbacks should be released
 	# @warning This should NEVER be called directly by a module
@@ -163,6 +191,8 @@ class EventController(Singleton):
 				callback(interface, params)
 			except:
 				Logger.log_traceback(callback.im_self)
+			finally:
+				self._decrement_event_threads()
 
 		params = Arguments(params)
 
@@ -181,8 +211,9 @@ class EventController(Singleton):
 							interface.reply("Access denied")
 							return
 
-					thread = threading.Thread(target = dispatcher_command_thread, 
+					thread = threading.Thread(target = dispatcher_command_thread,
 					                          kwargs = {"callback": callback, "interface": interface, "params": params})
+					self._increment_event_threads()
 					thread.start()
 				except Exception as e:
 					Logger.log_traceback(callback.im_self)
@@ -241,6 +272,8 @@ class EventController(Singleton):
 				callback(interface)
 			except:
 				Logger.log_traceback(callback.im_self)
+			finally:
+				self._decrement_event_threads()
 
 		if not msg.command:
 			return
@@ -251,7 +284,9 @@ class EventController(Singleton):
 			interface = IRCMessageController(irc, msg)
 
 			for (obj, callback) in self.eventCallbacks[key]:
-				thread = threading.Thread(target = dispatcher_event_thread, kwargs = {"callback": callback, "interface": interface})
+				thread = threading.Thread(target = dispatcher_event_thread,
+				                          kwargs = {"callback": callback, "interface": interface})
+				self._increment_event_threads()
 				thread.start()
 
 		# Check if it may be a command

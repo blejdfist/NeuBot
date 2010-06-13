@@ -403,7 +403,7 @@ class IRCController:
 				self.reconnect()
 				break
 			elif time_since_ping_pong > pong_timeout:
-				Logger.debug1("No PONG for %d seconds. Sending PING." % (time_since_ping_pong,))
+				Logger.debug3("No PONG for %d seconds. Sending PING." % (time_since_ping_pong,))
 				self.ping_server()
 
 			self.keepalive_thread_exit_event.wait(10)
@@ -540,3 +540,8 @@ class IRCController:
 
 	def ping_server(self):
 		self.send_raw("PING *")
+
+	##
+	# Wait for output queue to be emptied
+	def flush_output(self):
+		self.output_queue.join()

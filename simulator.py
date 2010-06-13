@@ -4,7 +4,6 @@ from lib import Logger
 from optparse import OptionParser
 import sys
 
-
 parser = OptionParser()
 parser.add_option("-p", "--plugins", dest="plugins", help="List of plugins to load separated by commas")
 parser.add_option("-d", "--debug",   default=False, action="store_true", dest="debug", help="Enable debug log")
@@ -42,5 +41,7 @@ while True:
 		break
 
 	sim.msg_channel(input)
+	sim.wait_for_events()
+	sim.flush()
 
 sim.stop()
