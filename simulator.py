@@ -14,7 +14,6 @@ if options.debug:
 	Logger.set_loglevel("DEBUGL2")
 
 sim = Simulator()
-sim.start()
 
 sim.load_plugin("corecommands", "core")
 sim.load_plugin("aclcommands", "core")
@@ -29,6 +28,8 @@ if options.plugins:
 		except Exception as e:
 			Logger.log_traceback(sim)
 			sys.exit(1)
+
+sim.start()
 
 while True:
 	try:
