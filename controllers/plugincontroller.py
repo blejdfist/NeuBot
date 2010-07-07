@@ -109,6 +109,13 @@ class PluginController(Singleton):
 				ignored_files = ignore(root, files)
 				files = filter(lambda x : x not in ignored_files, files)
 
+				# Look for plugins contained in directories
+				for directory in dirs:
+					path = root + "." + directory
+					if directory.lower() == name.lower():
+						Logger.debug("Candidate plugin '%s'" % path)
+						return path
+
 				# We don't want to recurse
 				dirs[:] = []
 
@@ -116,6 +123,7 @@ class PluginController(Singleton):
 				# it to be loaded directly
 				root = root.replace(os.sep, ".")
 
+				# Look for plugins containes as single files
 				for filename in files:
 					base = filename.partition(".")[0]
 					path = root + "." + base
@@ -172,5 +180,6 @@ class PluginController(Singleton):
 
 				return True
 
+		del sys.modules[import_name]
 		raise PluginLoadError("Unable to find entry point")
 
