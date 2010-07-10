@@ -29,7 +29,10 @@ if options.plugins:
 			Logger.log_traceback(sim)
 			sys.exit(1)
 
+# Start simulator and wait for the initialization events to finish
 sim.start()
+sim.wait_for_events()
+sim.flush()
 
 while True:
 	try:
