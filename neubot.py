@@ -116,6 +116,7 @@ class NeuBot:
 		self.ircnetscontroller = IRCNetsController()
 
 		self.config = ConfigController()
+		self.config.reload()
 
 		self.quit_event = threading.Event()
 		self.eventcontroller.register_system_event("BOT_QUIT", self.system_quit)

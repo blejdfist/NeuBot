@@ -28,7 +28,7 @@ class ConfigController(Singleton):
 	def construct(self):
 		self.config = {}
 
-		self.load()
+		self.load_defaults()
 
 	def load_defaults(self):
 		self.config = {
@@ -49,7 +49,7 @@ class ConfigController(Singleton):
 			"irc.reclaim_nick_if_lost":    True,	# Should the bot try to reclaim a lost nick?
 		}
 
-	def load(self):
+	def reload(self):
 		self.load_defaults()
 
 		if sys.modules.has_key('config'):

@@ -3,6 +3,7 @@ import tempfile
 import shutil
 
 from controllers.aclcontroller import ACLController
+from controllers.configcontroller import ConfigController
 from models import IRCUser
 
 class TestACLController(unittest.TestCase):
@@ -90,4 +91,14 @@ class TestACLController(unittest.TestCase):
 		self.assertFalse(self.acl.check_access(identityNormal, 'supersecret'))
 		self.assertFalse(self.acl.check_access(identityBad, 'supersecret'))
 
+	def testMasterAccess(self):
+		config = ConfigController()
+		config.get('masters').append("*!master@masterhost.tld")
 
+		identityMaster = IRCUser('iamthemaster!master@masterhost.tld')
+		identityNormal = IRCUser('TheUser!ident@host.tld')
+
+		self.assertTrue(self.acl.check_access(identityMaster, 'something'))
+		self.assertFalse(self.acl.check_access(identityNormal, 'something'))
+
+		config.load_defaults()

@@ -3,6 +3,7 @@ from controllers.eventcontroller import EventController
 from controllers.datastorecontroller import DatastoreController
 from controllers.plugincontroller import PluginController
 from controllers.ircnetscontroller import IRCNetsController
+from controllers.configcontroller import ConfigController
 
 from models import Channel, Server
 
@@ -24,6 +25,10 @@ class Simulator:
 		self.event = EventController()
 		self.plugin = PluginController()
 		self.socket = FakeSocket(server_name = self.server_name, bot_nick = self.bot_nick, bot_ident = self.bot_ident, bot_host = self.bot_host)
+
+		# Make sure the simulated user have access to all commands
+		config = ConfigController()
+		config.get('masters').append('*!*@*')
 
 		irc = SimulatedIRCController(self.event, self.socket)
 

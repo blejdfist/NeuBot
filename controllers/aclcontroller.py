@@ -58,10 +58,11 @@ class ACLController:
 
 	def check_access(self, identity, context):
 		masters = self.config.get('masters')
-		master_access = reduce(lambda x, y : x or y, [identity.is_matching(hostmask) for hostmask in masters])
 
-		if master_access:
-			return True
+		# Check if user has master access
+		for hostmask in masters:
+			if identity.is_matching(hostmask):
+				return True
 
 		result = self._query("SELECT hostmask FROM list_access WHERE context = ?", (context,))
 		if result:
