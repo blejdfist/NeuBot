@@ -138,6 +138,9 @@ class NeuBot:
 			Logger.info("Loading plugin '%s'" % plugin)
 			self.plugincontroller.load_plugin(plugin)
 
+		if len(self.config.get('ircnets')) == 0:
+			raise Exception("There has to be at least one ircnet to connect to")
+
 		for net in self.config.get('ircnets'):
 			irc = IRCController(self.eventcontroller)
 
@@ -182,7 +185,7 @@ if __name__ == "__main__":
 	except KeyboardInterrupt:
 		Logger.info("Keyboard interrupt detected. Shutting down.")
 
-	except Exception, e:
+	except Exception as e:
 		Logger.fatal("Fatal error: %s" % e)
 
 	finally:
