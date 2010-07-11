@@ -90,6 +90,12 @@ import threading
 #   <li>self.config @link controllers.configcontroller.ConfigController ConfigController @endlink</li>
 # </ul>
 #
+# When a command callback is called it is given two arguments
+# <ul>
+#   <li>irc @link controllers.ircmessagecontroller.IRCMessageController IRCMessageController @endlink - Wrapper around the IRCController along with some convenience functions</li>
+#   <li>params @link models.arguments.Arguments Argments @endlink - The arguments to the command preparsed and packaged</li>
+# </ul>
+#
 # Command documentation for callbacks can be put in the __doc__ for that command by writing the help in a triple-quote enclosed comment
 # in the method header
 # @code
