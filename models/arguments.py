@@ -4,11 +4,30 @@ from lib.util.simplestringlexer import SimpleStringLexer
 # @class Arguments
 # Wrapper that splits command line arguments in a shell-like fashion.
 # This makes it easier to split arguments that use quoted substrings
+#
+# Example:
+# <pre>
+# >>> from models.arguments import Arguments
+# >>> arg = Arguments('tell #channel "Hi guys!"')
+# >>> len(arg)
+# 3
+# >>> arg[0]
+# 'tell'
+# >>> arg[1]
+# '#channel'
+# >>> arg[2]
+# 'Hi guys!'
+# >>> arg[0:]
+# ['tell', '#channel', 'Hi guys!']
+# </pre>
 class Arguments:
 	def __init__(self, str):
 		if str:
 			self._str = str.strip()
-			self._splitted = SimpleStringLexer(str).split()
+			try:
+				self._splitted = SimpleStringLexer(str).split()
+			except:
+				self._splitted = []
 		else:
 			self._str = ""
 			self._splitted = []

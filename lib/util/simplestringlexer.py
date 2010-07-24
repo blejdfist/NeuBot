@@ -5,6 +5,7 @@ class SimpleStringLexer:
 	def __init__(self, s):
 		self.whitespace = ' \t\r\n'
 		self.quotes = '\'"'
+		self.escape_char = '\\'
 
 		self._pos = 0
 		self._state_substring = False
@@ -20,9 +21,6 @@ class SimpleStringLexer:
 	# Get the substring, call this when the position is currently on
 	# a quote-character
 	def _get_substring(self):
-		if self._pos == self._length:
-			raise Exception("Invalid substring")
-
 		quote_char = self._str[self._pos]
 		substring = ""
 
@@ -31,7 +29,9 @@ class SimpleStringLexer:
 
 		# Eat substring until we hit the end or find the end quote
 		while self._pos != self._length and self._str[self._pos] != quote_char:
-			if self._str[self._pos] != quote_char:
+			if self._str[self._pos] == self.escape_char:
+				substring += self._parse_escaped_character()
+			elif self._str[self._pos] != quote_char:
 				substring += self._str[self._pos]
 
 			self._pos += 1
@@ -44,16 +44,37 @@ class SimpleStringLexer:
 		return substring
 
 	def _get_token(self):
-		if self._pos == self._length:
-			return None
-
 		token = ""
 
 		while self._pos != self._length and self._str[self._pos] not in self.whitespace:
-			token += self._str[self._pos]
+			if self._str[self._pos] == self.escape_char:
+				token += self._parse_escaped_character()
+			else:
+				token += self._str[self._pos]
+
 			self._pos += 1
 
 		return token
+
+	def _parse_escaped_character(self):
+		if self._pos == self._length+1:
+			raise Exception("Invalid escape sequence")
+
+		# Skip escape-character
+		self._pos += 1
+
+		chars = {
+			'\\': '\\',
+			'"': '"',
+			"'": "'",
+		}
+
+		the_char = self._str[self._pos]
+
+		if the_char not in chars:
+			raise Exception("Invalid escape sequence")
+
+		return chars[the_char]
 
 	##
 	# Get next token
