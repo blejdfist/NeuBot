@@ -27,11 +27,11 @@ class TestPluginController(unittest.TestCase):
 		self.assertTrue(self.plugin.unload_plugin('corecommands'))
 
 	def testLoadUnloadDuplicate(self):
-		self.assertTrue(self.plugin.load_plugin('googlecalc'))
-		self.assertRaises(PluginLoadError, self.plugin.load_plugin, 'googlecalc')
+		self.assertTrue(self.plugin.load_plugin('normalplugin', 'test_plugins'))
+		self.assertRaises(PluginLoadError, self.plugin.load_plugin, 'normalplugin', 'test_plugins')
 
-		self.assertTrue(self.plugin.unload_plugin('googlecalc'))
-		self.assertRaises(PluginUnloadError, self.plugin.unload_plugin, 'googlecalc')
+		self.assertTrue(self.plugin.unload_plugin('normalplugin'))
+		self.assertRaises(PluginUnloadError, self.plugin.unload_plugin, 'normalplugin')
 
 	def testNormalPlugin(self):
 		self.assertTrue(self.plugin.load_plugin('normalplugin', 'test_plugins'))
