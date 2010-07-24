@@ -19,8 +19,10 @@
 #
 # Copyright (c) 2010, Jim Persson, All rights reserved.
 
-from lib.util import Singleton
 import sys
+
+from lib.util import Singleton
+from lib.logger import Logger
 
 ##
 # Contains the configuration
@@ -28,7 +30,7 @@ class ConfigController(Singleton):
 	def construct(self):
 		self.config = {}
 
-		self.load_defaults()
+		self.reload()
 
 	def load_defaults(self):
 		self.config = {
@@ -55,13 +57,16 @@ class ConfigController(Singleton):
 		if sys.modules.has_key('config'):
 			del sys.modules['config']
 
-		mod = __import__("config")
+		try:
+			mod = __import__("config")
 
-		# Overwrite any defaults
-		for key in mod.Bot.keys():
-			self.config[key] = mod.Bot[key]
+			# Overwrite any defaults
+			for key in mod.Bot.keys():
+				self.config[key] = mod.Bot[key]
 
-		del mod
+			del mod
+		except ImportError as e:
+			Logger.warning("No configuration found. Using defaults.")
 
 	##
 	# Get the value for a configuration option

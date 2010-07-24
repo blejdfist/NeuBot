@@ -93,6 +93,7 @@ class TestACLController(unittest.TestCase):
 
 	def testMasterAccess(self):
 		config = ConfigController()
+		config.load_defaults()
 		config.get('masters').append("*!master@masterhost.tld")
 
 		identityMaster = IRCUser('iamthemaster!master@masterhost.tld')
@@ -101,4 +102,3 @@ class TestACLController(unittest.TestCase):
 		self.assertTrue(self.acl.check_access(identityMaster, 'something'))
 		self.assertFalse(self.acl.check_access(identityNormal, 'something'))
 
-		config.load_defaults()

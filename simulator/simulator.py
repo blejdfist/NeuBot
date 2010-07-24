@@ -27,8 +27,7 @@ class Simulator:
 		self.socket = FakeSocket(server_name = self.server_name, bot_nick = self.bot_nick, bot_ident = self.bot_ident, bot_host = self.bot_host)
 
 		# Make sure the simulated user have access to all commands
-		config = ConfigController()
-		config.get('masters').append('*!*@*')
+		ConfigController().get('masters').append('*!*@*')
 
 		irc = SimulatedIRCController(self.event, self.socket)
 
