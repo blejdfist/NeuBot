@@ -72,9 +72,15 @@ def fetch_html(url, get=None, post=None, headers=None, cookie_jar=None):
 	request = urllib2.Request(url, post, headers)
 	opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookie_jar))
 	res = opener.open(request)
-	if 'text' in res.headers.getheader('Content-Type'):
-		return res.read()
 
+	# Honor the encoding specified in content-type if available
+	content_type = res.headers.getheader('Content-Type')
+	if 'text' in content_type:
+		match = re.search('charset=([^\s]+)', content_type)
+		if match:
+			return unicode(res.read(), match.group(1), 'ignore')
+		else:
+			return res.read()
 
 # INTERNALS
 # ----------------------------------------------------------------------
