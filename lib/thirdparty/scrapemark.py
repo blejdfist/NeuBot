@@ -543,7 +543,11 @@ def _decode_entities(s):
 def _substitute_entity(m):
 	ent = m.group(2)
 	if m.group(1) == "#":
-		return unichr(int(ent))
+		# Hex value
+		if ent[0] == 'x':
+			return unichr(int(ent[1:], 16))
+		else:
+			return unichr(int(ent))
 	else:
 		cp = name2codepoint.get(ent)
 		if cp:
