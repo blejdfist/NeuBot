@@ -65,7 +65,7 @@ class IRCController:
 		self.autoreconnect = True
 
 		# Output data queue
-		self.output_queue = Queue.Queue()
+		self.output_queue = Queue.PriorityQueue()
 
 		# Last PONG
 		self.last_ping_pong_ts = 0
@@ -339,6 +339,9 @@ class IRCController:
 		Logger.info("IRC connection closed")
 		self.connected = False
 
+		# Empty send queue
+		self.output_queue = Queue.PriorityQueue()
+
 		# Tear down keepalive-thread
 		self.keepalive_thread_exit_event.set()
 
@@ -355,15 +358,23 @@ class IRCController:
 	##
 	# Writer thread
 	def _thread_writer(self):
+		rate = 0
+
 		while self.connected:
 			try:
-				data = self.output_queue.get(timeout=1.0)
-				Logger.debug3("SEND[%s]: %s" % (self.ircnet, data.strip(),))
+				while rate < self.config.get('irc.rate_limit_burst_max'):
+					_, data = self.output_queue.get(timeout=1.0)
+					Logger.debug3("SEND[%s]: %s" % (self.ircnet, data.strip(),))
+					self.connection.send(data)
+					self.output_queue.task_done()
 
-				self.connection.send(data)
-				self.output_queue.task_done()
+					rate += 1
+				else:
+					time.sleep(self.config.get('irc.rate_limit_wait_time'))
+					rate -= 1 if rate > 0 else 0
+
 			except Queue.Empty as e:
-				pass
+				rate -= 1 if rate > 0 else 0
 
 		Logger.debug2("Writer thread exiting")
 
@@ -372,17 +383,17 @@ class IRCController:
 			if not channel.is_joined:
 				self.join(channel.name, channel.password)
 
-	def send_raw(self, data):
+	def send_raw(self, data, priority = 5):
 		if type(data) == unicode:
 			data = data.encode('utf-8')
 
 		if len(data) > 512:
-			Logger.warning("Sending data longer than 512 bytes. Length = %d bytes" % (data,))
+			Logger.warning("Sending data longer than 512 bytes. Length = %d bytes" % (len(data),))
 
 		# Remove any newlines
 		data = data.replace('\n', '').replace('\r', '')
 
-		self.output_queue.put(data + "\r\n")
+		self.output_queue.put((priority, data + "\r\n"))
 
 	def get_ircnet_name(self):
 		return self.ircnet
@@ -456,14 +467,14 @@ class IRCController:
 		self.pendingnick = nick
 
 		if self.is_connected():
-			self.send_raw("NICK " + nick)
+			self.send_raw("NICK " + nick, priority = 4)
 
 	##
 	# Set the topic of a channel
 	# @param channel Channel
 	# @param topic The new topic
 	def set_topic(self, channel, topic):
-		self.send_raw("TOPIC %s :%s" % (channel, topic))
+		self.send_raw("TOPIC %s :%s" % (channel, topic), priority = 4)
 
 	##
 	# Send a private message to a channel or nick
@@ -528,18 +539,18 @@ class IRCController:
 	# @param message Quit message (optional)
 	def quit(self, message = None):
 		if message:
-			self.send_raw("QUIT :" + message)
+			self.send_raw("QUIT :" + message, priority = 0)
 		else:
-			self.send_raw("QUIT")
+			self.send_raw("QUIT", priority = 0)
 
 	def pong_server(self, tag = None):
 		if tag:
-			self.send_raw("PONG :" + tag)
+			self.send_raw("PONG :" + tag, priority = 0)
 		else:
-			self.send_raw("PONG *")
+			self.send_raw("PONG *", priority = 0)
 
 	def ping_server(self):
-		self.send_raw("PING *")
+		self.send_raw("PING *", priority = 0)
 
 	##
 	# Wait for output queue to be emptied

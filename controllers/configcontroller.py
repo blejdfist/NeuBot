@@ -49,6 +49,8 @@ class ConfigController(Singleton):
 			"irc.rejoin_channel_time":     10,		# Time to wait before trying to rejoin channel
 			"irc.reconnect_time":          60,		# Time to wait before trying to reconnect to server
 			"irc.reclaim_nick_if_lost":    True,	# Should the bot try to reclaim a lost nick?
+			"irc.rate_limit_burst_max":    8,		# Maximum number of messages that will be sent in a burst before rate limits are applied
+			"irc.rate_limit_wait_time":    3,		# When burst limit is reached, how long should we wait before continuing
 		}
 
 	def reload(self):
