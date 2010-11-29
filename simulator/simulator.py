@@ -1,4 +1,3 @@
-from controllers.irccontroller import IRCController
 from controllers.eventcontroller import EventController
 from controllers.datastorecontroller import DatastoreController
 from controllers.plugincontroller import PluginController
@@ -15,65 +14,65 @@ import lib.net.netsocket
 lib.net.netsocket.AsyncBufferedNetSocket = FakeSocket
 
 class Simulator:
-	def __init__(self):
-		self.bot_nick = "NeuBot"
-		self.bot_ident = "neubot"
-		self.bot_host = "example.org"
+    def __init__(self):
+        self.bot_nick = "NeuBot"
+        self.bot_ident = "neubot"
+        self.bot_host = "example.org"
 
-		self.server_name = "irc.example.org"
+        self.server_name = "irc.example.org"
 
-		self.event = EventController()
-		self.plugin = PluginController()
-		self.socket = FakeSocket(server_name = self.server_name, bot_nick = self.bot_nick, bot_ident = self.bot_ident, bot_host = self.bot_host)
+        self.event = EventController()
+        self.plugin = PluginController()
+        self.socket = FakeSocket(server_name = self.server_name, bot_nick = self.bot_nick, bot_ident = self.bot_ident, bot_host = self.bot_host)
 
-		# Make sure the simulated user have access to all commands
-		ConfigController().get('masters').append('*!*@*')
-		ConfigController().set('irc.rate_limit_wait_time', 0)
+        # Make sure the simulated user have access to all commands
+        ConfigController().get('masters').append('*!*@*')
+        ConfigController().set('irc.rate_limit_wait_time', 0)
 
-		irc = SimulatedIRCController(self.event, self.socket)
+        irc = SimulatedIRCController(self.event, self.socket)
 
-		# Setup bot
-		irc.ircnet = "SimuNet"
-		irc.nick = self.bot_nick
-		irc.name = "The NeuBot"
-		irc.ident = self.bot_ident
+        # Setup bot
+        irc.ircnet = "SimuNet"
+        irc.nick = self.bot_nick
+        irc.name = "The NeuBot"
+        irc.ident = self.bot_ident
 
-		# Add fake server
-		irc.servers.append(Server(self.server_name, 6667))
+        # Add fake server
+        irc.servers.append(Server(self.server_name, 6667))
 
-		# Register server with ircnetscontroller
-		IRCNetsController().add_ircnet("SimuNet", irc)
+        # Register server with ircnetscontroller
+        IRCNetsController().add_ircnet("SimuNet", irc)
 
-		# Add fake channels
-		irc.channels.append(Channel('#simulator'))
+        # Add fake channels
+        irc.channels.append(Channel('#simulator'))
 
-		self.irc = irc
+        self.irc = irc
 
-		# Initialize datastore
-		DatastoreController().set_driver("data/simulator.db")
+        # Initialize datastore
+        DatastoreController().set_driver("data/simulator.db")
 
-	def load_plugin(self, name, search_dir = None):
-		self.plugin.load_plugin(name, search_dir)
+    def load_plugin(self, name, search_dir = None):
+        self.plugin.load_plugin(name, search_dir)
 
-	def feed_data(self, data):
-		self.socket.server_raw(data)
+    def feed_data(self, data):
+        self.socket.server_raw(data)
 
-	def msg_channel(self, message):
-		self.socket.server_user_response("PRIVMSG", "#simulator :" + message)
+    def msg_channel(self, message):
+        self.socket.server_user_response("PRIVMSG", "#simulator :" + message)
 
-	def start(self):
-		self.irc.connect()
+    def start(self):
+        self.irc.connect()
 
-	def stop(self):
-		self.irc.disconnect()
+    def stop(self):
+        self.irc.disconnect()
 
-	##
-	# Wait for all dispatched event threads to complete
-	def wait_for_events(self):
-		self.event.wait_for_pending_events()
+    ##
+    # Wait for all dispatched event threads to complete
+    def wait_for_events(self):
+        self.event.wait_for_pending_events()
 
-	##
-	# Wait for all queued output to be sent to the server
-	# (the simulated socket in this case)
-	def flush(self):
-		self.irc.flush_output()
+    ##
+    # Wait for all queued output to be sent to the server
+    # (the simulated socket in this case)
+    def flush(self):
+        self.irc.flush_output()

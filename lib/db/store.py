@@ -20,32 +20,32 @@
 ##
 # Wrapper around the DatastorageController
 class Store:
-	##
-	# @param driver Driver class to delegate requests to
-	# @param databasename Name of the "bucket". ex plugins_myplugin
-	def __init__(self, driver, databasename):
-		for method in ["put", "get", "drop"]:
-			if not getattr(driver, method):
-				raise Exception("Driver does not implement all necessary interfaces")
+    ##
+    # @param driver Driver class to delegate requests to
+    # @param databasename Name of the "bucket". ex plugins_myplugin
+    def __init__(self, driver, databasename):
+        for method in ["put", "get", "drop"]:
+            if not getattr(driver, method):
+                raise Exception("Driver does not implement all necessary interfaces")
 
-		self.db = databasename
-		self.driver = driver
+        self.db = databasename
+        self.driver = driver
 
-	##
-	# Put a value in the store
-	# @param key Key for the value
-	# @param value The actual value
-	def put(self, key, value):
-		self.driver.put(self.db, key, value)
+    ##
+    # Put a value in the store
+    # @param key Key for the value
+    # @param value The actual value
+    def put(self, key, value):
+        self.driver.put(self.db, key, value)
 
-	##
-	# Retrieve a value by key from the store
-	# @param key Key for the value
-	# @return The value associated with the supplied key
-	def get(self, key):
-		return self.driver.get(self.db, key)
+    ##
+    # Retrieve a value by key from the store
+    # @param key Key for the value
+    # @return The value associated with the supplied key
+    def get(self, key):
+        return self.driver.get(self.db, key)
 
-	##
-	# Delete the store completely
-	def drop(self):
-		self.driver.drop(self.db)
+    ##
+    # Delete the store completely
+    def drop(self):
+        self.driver.drop(self.db)

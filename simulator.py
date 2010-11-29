@@ -11,7 +11,7 @@ parser.add_option("-d", "--debug",   default=False, action="store_true", dest="d
 (options, args) = parser.parse_args()
 
 if options.debug:
-	Logger.set_loglevel("DEBUGL2")
+    Logger.set_loglevel("DEBUGL2")
 
 sim = Simulator()
 
@@ -19,15 +19,15 @@ sim.load_plugin("corecommands", "core")
 sim.load_plugin("aclcommands", "core")
 
 if options.plugins:
-	plugins = options.plugins.split(",")
+    plugins = options.plugins.split(",")
 
-	for plugin in plugins:
-		Logger.info("Loading %s" % plugin)
-		try:
-			sim.load_plugin(plugin)
-		except Exception as e:
-			Logger.log_traceback(sim)
-			sys.exit(1)
+    for plugin in plugins:
+        Logger.info("Loading %s" % plugin)
+        try:
+            sim.load_plugin(plugin)
+        except Exception as e:
+            Logger.log_traceback(sim)
+            sys.exit(1)
 
 # Start simulator and wait for the initialization events to finish
 sim.start()
@@ -35,17 +35,17 @@ sim.wait_for_events()
 sim.flush()
 
 while True:
-	try:
-		input = raw_input("Simulator# > ")
-	except (EOFError, KeyboardInterrupt):
-		print "quit"
-		break
+    try:
+        input = raw_input("Simulator# > ")
+    except (EOFError, KeyboardInterrupt):
+        print "quit"
+        break
 
-	if input == "quit":
-		break
+    if input == "quit":
+        break
 
-	sim.msg_channel(input)
-	sim.wait_for_events()
-	sim.flush()
+    sim.msg_channel(input)
+    sim.wait_for_events()
+    sim.flush()
 
 sim.stop()

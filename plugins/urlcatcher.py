@@ -4,58 +4,57 @@ from lib.thirdparty import scrapemark
 
 import re
 import urlparse
-import urllib2
 
 class UrlCatcherPlugin(Plugin):
-	def __init__(self):
-		self.author = "Jim Persson"
-		self.version = "1.0"
-		        
-		self.event.register_event('PRIVMSG', self.event_privmsg)
+    def __init__(self):
+        self.author = "Jim Persson"
+        self.version = "1.0"
 
-		self._re_url = re.compile(r"(https*\:\/\/[^ \t]*)")
+        self.event.register_event('PRIVMSG', self.event_privmsg)
 
-	def event_privmsg(self, irc):
-		match = self._re_url.search(irc.message.params)
+        self._re_url = re.compile(r"(https*\:\/\/[^ \t]*)")
 
-		if not match:
-			return
+    def event_privmsg(self, irc):
+        match = self._re_url.search(irc.message.params)
 
-		url = match.group(0)
-		res = urlparse.urlsplit(url)
+        if not match:
+            return
 
-		# Don't try to get the title for ftp etc
-		if res.scheme not in ['http', 'https']:
-			return
+        url = match.group(0)
+        res = urlparse.urlsplit(url)
 
-		# Encode domain part to IDNA if possible
-		netloc = res.netloc
-		try:
-			hostname = res.hostname.encode('IDNA')
+        # Don't try to get the title for ftp etc
+        if res.scheme not in ['http', 'https']:
+            return
 
-			# Add back the username and password
-			if '@' in netloc:
-				usernpass, _ = netloc.rsplit('@')
-				netloc = usernpass + '@' + hostname
-			else:
-				netloc = hostname
-		except:
-			pass
+        # Encode domain part to IDNA if possible
+        netloc = res.netloc
+        try:
+            hostname = res.hostname.encode('IDNA')
 
-		res = res._replace(fragment = '', netloc = netloc)
+            # Add back the username and password
+            if '@' in netloc:
+                usernpass, _ = netloc.rsplit('@')
+                netloc = usernpass + '@' + hostname
+            else:
+                netloc = hostname
+        except:
+            pass
 
-		# Reassemble the parts
-		url = urlparse.urlunsplit(res)
+        res = res._replace(fragment = '', netloc = netloc)
 
-		Logger.info("Urlcatcher retrieving '%s'" % url)
-		try:
-			data = scrapemark.scrape("<title>{{title}}</title>", url = url)
+        # Reassemble the parts
+        url = urlparse.urlunsplit(res)
 
-			if not data:
-				Logger.info("Urlcatcher received no title")
-				return
+        Logger.info("Urlcatcher retrieving '%s'" % url)
+        try:
+            data = scrapemark.scrape("<title>{{title}}</title>", url = url)
 
-			irc.reply('Title: %s' % data['title'])
-		except Exception, e:
-			Logger.warning("Urlcatcher error")
-			raise e
+            if not data:
+                Logger.info("Urlcatcher received no title")
+                return
+
+            irc.reply('Title: %s' % data['title'])
+        except Exception, e:
+            Logger.warning("Urlcatcher error")
+            raise e

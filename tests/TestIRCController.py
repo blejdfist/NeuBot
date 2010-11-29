@@ -3,6 +3,9 @@ import unittest
 from models.server import Server
 
 class FakeEventController:
+    def __init__(self):
+        pass
+
     def register_event(self, *args):
         pass
 

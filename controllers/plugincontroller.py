@@ -35,151 +35,151 @@ from controllers.configcontroller    import ConfigController
 from controllers.ircnetscontroller   import IRCNetsController
 
 class PluginLoadError(Exception):
-	pass
+    pass
 
 class PluginUnloadError(Exception):
-	pass
+    pass
 
 ##
 # Handler of loading/unloding plugins
 class PluginController(Singleton):
-	def construct(self):
-		self.loaded_plugins = {}
-		self.eventcontroller = EventController()
-		self.config = ConfigController()
+    def construct(self):
+        self.loaded_plugins = {}
+        self.eventcontroller = EventController()
+        self.config = ConfigController()
 
-	##
-	# Unload all loaded plugins
-	def unload_all(self):
-		for plugin in self.loaded_plugins.keys():
-			self.unload_plugin(plugin)
+    ##
+    # Unload all loaded plugins
+    def unload_all(self):
+        for plugin in self.loaded_plugins.keys():
+            self.unload_plugin(plugin)
 
-	##
-	# Reload a plugin by name
-	# @note The plugin will be unloaded but not loaded again if it's in a non-standard path
-	def reload_plugin(self, name):
-		name = name.strip()
+    ##
+    # Reload a plugin by name
+    # @note The plugin will be unloaded but not loaded again if it's in a non-standard path
+    def reload_plugin(self, name):
+        name = name.strip()
 
-		try:
-			self.unload_plugin(name)
-		except:
-			pass
+        try:
+            self.unload_plugin(name)
+        except:
+            pass
 
-		return self.load_plugin(name)
+        return self.load_plugin(name)
 
-	def unload_plugin(self, name):
-		name = name.strip().lower()
+    def unload_plugin(self, name):
+        name = name.strip().lower()
 
-		if not self.loaded_plugins.has_key(name):
-			raise PluginUnloadError("No such plugin loaded")
+        if not self.loaded_plugins.has_key(name):
+            raise PluginUnloadError("No such plugin loaded")
 
-		basename, instance, import_name = self.loaded_plugins[name]
+        basename, instance, import_name = self.loaded_plugins[name]
 
-		# Release events related to this plugin
-		self.eventcontroller.release_related(instance)
+        # Release events related to this plugin
+        self.eventcontroller.release_related(instance)
 
-		# Try to call Cleanup if it exists
-		try:
-			instance.cleanup()
-		except:
-			pass
+        # Try to call Cleanup if it exists
+        try:
+            instance.cleanup()
+        except:
+            pass
 
-		# Delete instance
-		del instance
-		del self.loaded_plugins[name]
+        # Delete instance
+        del instance
+        del self.loaded_plugins[name]
 
-		for module in sys.modules.keys():
-			if module.startswith(import_name):
-				del sys.modules[module]
+        for module in sys.modules.keys():
+            if module.startswith(import_name):
+                del sys.modules[module]
 
-		return True
+        return True
 
-	def find_plugin(self, name, search_dir):
-		if search_dir:
-			search_dirs = [search_dir]
-		else:
-			search_dirs = self.config.get('plugin_paths')
+    def find_plugin(self, name, search_dir):
+        if search_dir:
+            search_dirs = [search_dir]
+        else:
+            search_dirs = self.config.get('plugin_paths')
 
-		ignore = shutil.ignore_patterns("*.pyc", "__init__.py")
+        ignore = shutil.ignore_patterns("*.pyc", "__init__.py")
 
-		Logger.debug2("Trying to find plugin %s" % name)
-		for search_dir in search_dirs:
-			Logger.debug3("Searching path %s for plugin %s" % (search_dir, name))
-			for root, dirs, files in os.walk(search_dir):
-				ignored_files = ignore(root, files)
-				files = filter(lambda x : x not in ignored_files, files)
+        Logger.debug2("Trying to find plugin %s" % name)
+        for search_dir in search_dirs:
+            Logger.debug3("Searching path %s for plugin %s" % (search_dir, name))
+            for root, dirs, files in os.walk(search_dir):
+                ignored_files = ignore(root, files)
+                files = filter(lambda x : x not in ignored_files, files)
 
-				# Look for plugins contained in directories
-				for directory in dirs:
-					path = root + "." + directory
-					if directory.lower() == name.lower():
-						Logger.debug("Candidate plugin '%s'" % path)
-						return path
+                # Look for plugins contained in directories
+                for directory in dirs:
+                    path = root + "." + directory
+                    if directory.lower() == name.lower():
+                        Logger.debug("Candidate plugin '%s'" % path)
+                        return path
 
-				# We don't want to recurse
-				dirs[:] = []
+                # We don't want to recurse
+                dirs[:] = []
 
-				# Replace path separators with dots to allow
-				# it to be loaded directly
-				root = root.replace(os.sep, ".")
+                # Replace path separators with dots to allow
+                # it to be loaded directly
+                root = root.replace(os.sep, ".")
 
-				# Look for plugins containes as single files
-				for filename in files:
-					base = filename.partition(".")[0]
-					path = root + "." + base
-					if base.lower() == name.lower():
-						Logger.debug("Candidate plugin '%s'" % path)
-						return path
+                # Look for plugins containes as single files
+                for filename in files:
+                    base = filename.partition(".")[0]
+                    path = root + "." + base
+                    if base.lower() == name.lower():
+                        Logger.debug("Candidate plugin '%s'" % path)
+                        return path
 
-	##
-	# Load a specified plugin
-	# @param name Name of plugin file (case insensitive)
-	# @param search_dir Directory too look for plugin. If not specified, plugin_path
-	#                   from the configuration will be used
-	def load_plugin(self, name, search_dir = None):
-		name = name.strip()
-		import_name = None
+    ##
+    # Load a specified plugin
+    # @param name Name of plugin file (case insensitive)
+    # @param search_dir Directory too look for plugin. If not specified, plugin_path
+    #                   from the configuration will be used
+    def load_plugin(self, name, search_dir = None):
+        name = name.strip()
+        import_name = None
 
-		if self.loaded_plugins.has_key(name):
-			raise PluginLoadError("Plugin is already loaded")
+        if self.loaded_plugins.has_key(name):
+            raise PluginLoadError("Plugin is already loaded")
 
-		import_name = self.find_plugin(name, search_dir)
+        import_name = self.find_plugin(name, search_dir)
 
-		if not import_name:
-			raise PluginLoadError("No such plugin")
+        if not import_name:
+            raise PluginLoadError("No such plugin")
 
-		basename = import_name.rpartition(".")[2]
+        basename = import_name.rpartition(".")[2]
 
-		try:
-			mod = __import__(import_name)
-			cls = getattr(mod, basename)
-		except Exception, e:
-			# Remove the system-entry
-			if import_name and sys.modules.has_key(import_name):
-				del sys.modules[import_name]
+        try:
+            mod = __import__(import_name)
+            cls = getattr(mod, basename)
+        except Exception, e:
+            # Remove the system-entry
+            if import_name and sys.modules.has_key(import_name):
+                del sys.modules[import_name]
 
-			Logger.log_traceback(self)
-			raise PluginLoadError("Failed to load " + import_name)
+            Logger.log_traceback(self)
+            raise PluginLoadError("Failed to load " + import_name)
 
-		# Find the plugin entry point
-		for objname in dir(cls):
-			obj = getattr(cls, objname)
-			if objname != 'Plugin' and type(obj) == types.ClassType and issubclass(obj, Plugin):
-				Logger.debug("Plugin entry is '%s'" % objname)
-				instance = new.instance(obj)
+        # Find the plugin entry point
+        for objname in dir(cls):
+            obj = getattr(cls, objname)
+            if objname != 'Plugin' and type(obj) == types.ClassType and issubclass(obj, Plugin):
+                Logger.debug("Plugin entry is '%s'" % objname)
+                instance = new.instance(obj)
 
-				# Initialize plugin instance
-				instance.store  = DatastoreController().get_store(basename)
-				instance.event  = self.eventcontroller
-				instance.config = self.config
-				instance.nets   = IRCNetsController()
-				instance.plugin = self
-				instance.__init__()
+                # Initialize plugin instance
+                instance.store  = DatastoreController().get_store(basename)
+                instance.event  = self.eventcontroller
+                instance.config = self.config
+                instance.nets   = IRCNetsController()
+                instance.plugin = self
+                instance.__init__()
 
-				self.loaded_plugins[basename.lower()] = (basename, instance, import_name)
+                self.loaded_plugins[basename.lower()] = (basename, instance, import_name)
 
-				return True
+                return True
 
-		del sys.modules[import_name]
-		raise PluginLoadError("Unable to find entry point")
+        del sys.modules[import_name]
+        raise PluginLoadError("Unable to find entry point")
 

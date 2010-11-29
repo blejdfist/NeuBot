@@ -27,66 +27,66 @@ from lib.logger import Logger
 ##
 # Contains the configuration
 class ConfigController(Singleton):
-	def construct(self):
-		self.config = {}
+    def construct(self):
+        self._config = {}
 
-		self.reload()
+        self.reload()
 
-	def load_defaults(self):
-		self.config = {
-			"debug": False,
-			"ircnets": [],
-			"datastore": "yserial://datastore.db",
-			"masters": [],
-			"coreplugins": ["aclcommands", "corecommands"],
-			"plugins": [],
-			"plugin_paths": ["plugins"],
-			"log.level": "FATAL",
+    def load_defaults(self):
+        self._config = {
+            "debug": False,
+            "ircnets": [],
+            "datastore": "yserial://datastore.db",
+            "masters": [],
+            "coreplugins": ["aclcommands", "corecommands"],
+            "plugins": [],
+            "plugin_paths": ["plugins"],
+            "log.level": "FATAL",
 
-			"irc.pong_timeout":            180,		# Time of no ping/pong until bot sends it's own PING to server
-			"irc.pong_disconnect_time":    300,		# Time of no ping/pong until bot tries to reconnect
-			"irc.reclaim_nick_time":       30,		# Time to wait before trying to reclaim lost nick
-			"irc.rejoin_channel_time":     10,		# Time to wait before trying to rejoin channel
-			"irc.reconnect_time":          60,		# Time to wait before trying to reconnect to server
-			"irc.reclaim_nick_if_lost":    True,	# Should the bot try to reclaim a lost nick?
-			"irc.rate_limit_burst_max":    8,		# Maximum number of messages that will be sent in a burst before rate limits are applied
-			"irc.rate_limit_wait_time":    3,		# When burst limit is reached, how long should we wait before continuing
-		}
+            "irc.pong_timeout":            180,     # Time of no ping/pong until bot sends it's own PING to server
+            "irc.pong_disconnect_time":    300,     # Time of no ping/pong until bot tries to reconnect
+            "irc.reclaim_nick_time":       30,      # Time to wait before trying to reclaim lost nick
+            "irc.rejoin_channel_time":     10,      # Time to wait before trying to rejoin channel
+            "irc.reconnect_time":          60,      # Time to wait before trying to reconnect to server
+            "irc.reclaim_nick_if_lost":    True,    # Should the bot try to reclaim a lost nick?
+            "irc.rate_limit_burst_max":    8,       # Maximum number of messages that will be sent in a burst before rate limits are applied
+            "irc.rate_limit_wait_time":    3,       # When burst limit is reached, how long should we wait before continuing
+        }
 
-	def reload(self):
-		self.load_defaults()
+    def reload(self):
+        self.load_defaults()
 
-		if sys.modules.has_key('config'):
-			del sys.modules['config']
+        if sys.modules.has_key('config'):
+            del sys.modules['config']
 
-		try:
-			mod = __import__("config")
+        try:
+            mod = __import__("config")
 
-			# Overwrite any defaults
-			for key in mod.Bot.keys():
-				self.config[key] = mod.Bot[key]
+            # Overwrite any defaults
+            for key in mod.Bot.keys():
+                self._config[key] = mod.Bot[key]
 
-			del mod
-		except ImportError as e:
-			Logger.warning("No configuration found. Using defaults.")
+            del mod
+        except ImportError as e:
+            Logger.warning("No configuration found. Using defaults.")
 
-	##
-	# Get the value for a configuration option
-	# @param key Configuration option
-	# @return Option value
-	def get(self, key):
-		if self.config.has_key(key):
-			return self.config[key]
+    ##
+    # Get the value for a configuration option
+    # @param key Configuration option
+    # @return Option value
+    def get(self, key):
+        if self._config.has_key(key):
+            return self._config[key]
 
-		return None
+        return None
 
-	##
-	# Set the value for a configuration option
-	# @warning This should not be used by plugins
-	#
-	# @param key Configuration option
-	# @param value Option value
-	def set(self, key, value):
-		self.config[key] = value
+    ##
+    # Set the value for a configuration option
+    # @warning This should not be used by plugins
+    #
+    # @param key Configuration option
+    # @param value Option value
+    def set(self, key, value):
+        self._config[key] = value
 
-		return None
+        return None

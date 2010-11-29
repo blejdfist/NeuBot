@@ -24,19 +24,19 @@ from lib.util import Singleton
 ##
 # Contains the configuration
 class IRCNetsController(Singleton):
-	def construct(self):
-		self.ircnets = {}
+    def construct(self):
+        self.ircnets = {}
 
-	def add_ircnet(self, name, irccontroller):
-		self.ircnets[name] = irccontroller
+    def add_ircnet(self, name, irccontroller):
+        self.ircnets[name] = irccontroller
 
-	def get_ircnet(self, name):
-		if self.ircnets.has_key(name):
-			return self.ircnets[name]
+    def get_ircnet(self, name):
+        if self.ircnets.has_key(name):
+            return self.ircnets[name]
 
-	def get_ircnet_names(self):
-		return self.ircnets.keys()
+    def get_ircnet_names(self):
+        return self.ircnets.keys()
 
-	def disconnect_all(self):
-		for ircnet in self.ircnets.keys():
-			self.ircnets[ircnet].disconnect()
+    def disconnect_all(self):
+        for ircnet in self.ircnets.keys():
+            self.ircnets[ircnet].disconnect()

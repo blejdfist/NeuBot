@@ -28,264 +28,264 @@ from models import IRCUser
 
 ## Access Control Lists - Controller
 class ACLController:
-	def __init__(self, database = 'data/acl.db'):
-		self.db = database
-		self.config = ConfigController()
-
-		try:
-			conn = sqlite3.connect(self.db)
-			#cursor = conn.cursor()
-
-			# ACL
-			fp = open("resources/acl/acl.sql", "r")
-			data = fp.read()
-			fp.close()
-
-			# Triggers
-			fp = open("resources/acl/triggers.sql", "r")
-			data += fp.read()
-			fp.close()
-
-			conn.executescript(data)
-			conn.commit()
+    def __init__(self, database = 'data/acl.db'):
+        self.db = database
+        self.config = ConfigController()
 
-			if not self._user_exists("any"):
-				self.add_user("any")
-				self.user_add_hostmask("any", "*!*@*")
+        try:
+            conn = sqlite3.connect(self.db)
+            #cursor = conn.cursor()
 
-		except sqlite3.Error as e:
-			Logger.fatal("Unable to create ACL database: %s" % e)
+            # ACL
+            fp = open("resources/acl/acl.sql", "r")
+            data = fp.read()
+            fp.close()
 
-	def check_access(self, identity, context):
-		masters = self.config.get('masters')
+            # Triggers
+            fp = open("resources/acl/triggers.sql", "r")
+            data += fp.read()
+            fp.close()
 
-		# Check if user has master access
-		for hostmask in masters:
-			if identity.is_matching(hostmask):
-				return True
+            conn.executescript(data)
+            conn.commit()
 
-		result = self._query("SELECT hostmask FROM list_access WHERE context = ?", (context,))
-		if result:
-			for (row,) in result:
-				if identity.is_matching(row):
-					return True
+            if not self._user_exists("any"):
+                self.add_user("any")
+                self.user_add_hostmask("any", "*!*@*")
 
-		return False
+        except sqlite3.Error as e:
+            Logger.fatal("Unable to create ACL database: %s" % e)
 
-	def _query(self, querystring, parameters = ()):
-		conn  = sqlite3.connect(self.db)
-		cursor = conn.cursor()
-		
-		try:
-			cursor.execute(querystring, parameters)
-			result = cursor.fetchall()
-			conn.commit()
+    def check_access(self, identity, context):
+        masters = self.config.get('masters')
 
-			return result
-		except sqlite3.Error as e:
-			Logger.warning("Query error (%s) %s: %s" % (querystring, parameters, e))
-			return None
+        # Check if user has master access
+        for hostmask in masters:
+            if identity.is_matching(hostmask):
+                return True
 
-	def _user_exists(self, username):
-		result = self._query("SELECT name FROM acl_aro WHERE name = ? AND type = 'user'", (username,))
-		if not result is None:
-			if len(result) != 0:
-				return True
+        result = self._query("SELECT hostmask FROM list_access WHERE context = ?", (context,))
+        if result:
+            for (row,) in result:
+                if identity.is_matching(row):
+                    return True
 
-		return False
+        return False
 
-	def _group_exists(self, groupname):
-		result = self._query("SELECT name FROM acl_aro WHERE name = ? AND type = 'group'", (groupname,))
-		if not result is None:
-			if len(result) != 0:
-				return True
+    def _query(self, querystring, parameters = ()):
+        conn  = sqlite3.connect(self.db)
+        cursor = conn.cursor()
 
-		return False
+        try:
+            cursor.execute(querystring, parameters)
+            result = cursor.fetchall()
+            conn.commit()
 
-	def _hostmask_exists(self, username, hostmask):
-		result = self._query("SELECT hostmask FROM acl_user_hostmasks WHERE aro_name = ? AND hostmask = ?", (username, hostmask))
-		if not result is None:
-			if len(result) != 0:
-				return True
+            return result
+        except sqlite3.Error as e:
+            Logger.warning("Query error (%s) %s: %s" % (querystring, parameters, e))
+            return None
 
-		return False
+    def _user_exists(self, username):
+        result = self._query("SELECT name FROM acl_aro WHERE name = ? AND type = 'user'", (username,))
+        if not result is None:
+            if len(result) != 0:
+                return True
 
-	def add_group(self, groupname):
-		if self._group_exists(groupname):
-			raise Exception("Group already exists")
+        return False
 
-		if self._query("INSERT INTO acl_aro (name, type) VALUES (?, ?)", (groupname, "group")) is None:
-			raise Exception("Unable to add group %s" % (groupname))
+    def _group_exists(self, groupname):
+        result = self._query("SELECT name FROM acl_aro WHERE name = ? AND type = 'group'", (groupname,))
+        if not result is None:
+            if len(result) != 0:
+                return True
 
-	def del_group(self, groupname):
-		if not self._group_exists(groupname):
-			raise Exception("No such group")
+        return False
 
-		if self._query("DELETE FROM acl_aro WHERE name = ? AND type = 'group'", (groupname,)) is None:
-			raise Exception("Unable to remove group %s" % (groupname))
+    def _hostmask_exists(self, username, hostmask):
+        result = self._query("SELECT hostmask FROM acl_user_hostmasks WHERE aro_name = ? AND hostmask = ?", (username, hostmask))
+        if not result is None:
+            if len(result) != 0:
+                return True
 
-	def add_user(self, username):
-		if self._user_exists(username):
-			raise Exception("User already exists")
+        return False
 
-		if self._query("INSERT INTO acl_aro (name, type) VALUES (?, ?)", (username, "user")) is None:
-			raise Exception("Unable to add user %s" % (username))
+    def add_group(self, groupname):
+        if self._group_exists(groupname):
+            raise Exception("Group already exists")
 
-	def del_user(self, username):
-		if not self._user_exists(username):
-			raise Exception("No such user")
+        if self._query("INSERT INTO acl_aro (name, type) VALUES (?, ?)", (groupname, "group")) is None:
+            raise Exception("Unable to add group %s" % (groupname))
 
-		if self._query("DELETE FROM acl_aro WHERE name = ? AND type = 'user'", (username,)) is None:
-			raise Exception("Unable to remove user %s" % (username))
+    def del_group(self, groupname):
+        if not self._group_exists(groupname):
+            raise Exception("No such group")
 
-	def user_add_hostmask(self, username, hostmask):
-		if not self._user_exists(username):
-			raise Exception("No such user")
+        if self._query("DELETE FROM acl_aro WHERE name = ? AND type = 'group'", (groupname,)) is None:
+            raise Exception("Unable to remove group %s" % (groupname))
 
-		if not hostmask or len(hostmask) == 0:
-			raise Exception("Empty hostmask")
+    def add_user(self, username):
+        if self._user_exists(username):
+            raise Exception("User already exists")
 
-		if IRCUser.whoparser.match(hostmask) == None:
-			raise Exception("Invalid hostmask")
+        if self._query("INSERT INTO acl_aro (name, type) VALUES (?, ?)", (username, "user")) is None:
+            raise Exception("Unable to add user %s" % (username))
 
-		if self._query("INSERT INTO acl_user_hostmasks (aro_name, hostmask) VALUES (?, ?)", (username, hostmask)) is None:
-			raise Exception("Unable to add hostmask")
+    def del_user(self, username):
+        if not self._user_exists(username):
+            raise Exception("No such user")
 
-	def user_del_hostmask(self, username, hostmask):
-		if not self._user_exists(username):
-			raise Exception("No such user")
+        if self._query("DELETE FROM acl_aro WHERE name = ? AND type = 'user'", (username,)) is None:
+            raise Exception("Unable to remove user %s" % (username))
 
-		if not self._hostmask_exists(username, hostmask):
-			raise Exception("No such hostmask for user '%s'" % username)
+    def user_add_hostmask(self, username, hostmask):
+        if not self._user_exists(username):
+            raise Exception("No such user")
 
-		if self._query("DELETE FROM acl_user_hostmasks WHERE aro_name = ? AND hostmask = ?", (username, hostmask)) is None:
-			raise Exception("Unable to remove hostmask")
+        if not hostmask or len(hostmask) == 0:
+            raise Exception("Empty hostmask")
 
-	def group_add_user(self, username, groupname):
-		if not self._user_exists(username):
-			raise Exception("No such user")
+        if IRCUser.whoparser.match(hostmask) == None:
+            raise Exception("Invalid hostmask")
 
-		if not self._group_exists(groupname):
-			raise Exception("No such group")
+        if self._query("INSERT INTO acl_user_hostmasks (aro_name, hostmask) VALUES (?, ?)", (username, hostmask)) is None:
+            raise Exception("Unable to add hostmask")
 
-		result = self._query("SELECT aro_name_1 FROM acl_memberships WHERE aro_name_1 = ? AND aro_name_2 = ?", (username, groupname))
-		if not result is None:
-			if len(result) != 0:
-				raise Exception("User %s is already a member of %s" % (username, groupname))
+    def user_del_hostmask(self, username, hostmask):
+        if not self._user_exists(username):
+            raise Exception("No such user")
 
-		if self._query("INSERT INTO acl_memberships (aro_name_1, aro_name_2) VALUES (?, ?)", (username, groupname)) is None:
-			raise Exception("Unable to add user to group")
+        if not self._hostmask_exists(username, hostmask):
+            raise Exception("No such hostmask for user '%s'" % username)
 
-	def group_del_user(self, username, groupname):
-		if not self._user_exists(username):
-			raise Exception("No such user")
+        if self._query("DELETE FROM acl_user_hostmasks WHERE aro_name = ? AND hostmask = ?", (username, hostmask)) is None:
+            raise Exception("Unable to remove hostmask")
 
-		if not self._group_exists(groupname):
-			raise Exception("No such group")
+    def group_add_user(self, username, groupname):
+        if not self._user_exists(username):
+            raise Exception("No such user")
 
-		result = self._query("SELECT aro_name_1 FROM acl_memberships WHERE aro_name_1 = ? AND aro_name_2 = ?", (username, groupname))
-		if not result is None:
-			if len(result) != 1:
-				raise Exception("User %s is not a member %s" % (username, groupname))
+        if not self._group_exists(groupname):
+            raise Exception("No such group")
 
-		if self._query("DELETE FROM acl_memberships WHERE aro_name_1 = ? AND aro_name_2 = ?", (username, groupname)) is None:
-			raise Exception("Unable to remove user from group")
-
-	def access_allow(self, context, aro):
-		isGroup = self._group_exists(aro)
-		isUser  = self._user_exists(aro)
-		if not isGroup and not isUser:
-			raise Exception("No such user or group")
-
-		# Add context if it doesn't exist
-		context = context.lower()
-		self._query("INSERT INTO acl_aco (name) VALUES (?)", (context,))
-
-		# Clear any old access
-		self._query("DELETE FROM acl_access WHERE aro_name = ? AND aco_name = ?", (aro, context))
-
-		if self._query("INSERT INTO acl_access (aro_name, aco_name, access) VALUES (?, ?, 1)", (aro, context)) is None:
-			raise Exception("Unable to grant access")
-
-	def access_deny(self, context, aro):
-		isGroup = self._group_exists(aro)
-		isUser  = self._user_exists(aro)
-		if not isGroup and not isUser:
-			raise Exception("No such user or group")
-
-		# Add context if it doesn't exist
-		context = context.lower()
-		self._query("INSERT INTO acl_aco (name) VALUES (?)", (context,))
-
-		# Clear any old access
-		self._query("DELETE FROM acl_access WHERE aro_name = ? AND aco_name = ?", (aro, context))
-
-		if self._query("INSERT INTO acl_access (aro_name, aco_name, access) VALUES (?, ?, 0)", (aro, context)) is None:
-			raise Exception("Unable to deny access")
-
-	def access_remove(self, context, aro):
-		isGroup = self._group_exists(aro)
-		isUser  = self._user_exists(aro)
-		if not isGroup and not isUser:
-			raise Exception("No such user or group")
-
-		self._query("DELETE FROM acl_access WHERE aro_name = ? AND aco_name = ?", (aro, context))
-
-	def access_clear(self, context):
-		self._query("DELETE FROM acl_aco WHERE name = ?", (context.lower(),))
-
-	def get_user_info(self, username):
-		if not self._user_exists(username):
-			raise Exception("No such user")
-
-		info = {
-			"username": username,
-			"hostmasks": [],
-			"groups": [],
-			"access": []
-		}
-
-		# Get hostmasks
-		result = self._query("SELECT hostmask FROM user_hostmasks WHERE username = ?", (username, ))
-		if not result is None:
-			info["hostmasks"] = [row[0] for row in result]
-
-		# Get group memberships
-		result = self._query("SELECT groupname FROM user_groups WHERE username = ?", (username, ))
-		if not result is None:
-			info["groups"] = [row[0] for row in result]
-
-		# Get command access
-		result = self._query("SELECT aro_name, username, context FROM list_access WHERE username = ? OR aro_name = ? GROUP BY context", (username, username))
-		if not result is None:
-			for (access_aro, member_username, context) in result:
-				if member_username is None:
-					info["access"].append((context, None))
-				else:
-					info["access"].append((context, access_aro))
-
-		return info
-
-	def get_group_members(self, groupname):
-		result = self._query("SELECT aro_name_1 FROM acl_memberships WHERE aro_name_2 = ?", (groupname,))
-
-		if result is None or len(result) == 0:
-			raise Exception("No such group. Or group have no members.")
-		else:
-			return [row[0] for row in result]
-
-	def get_users(self):
-		result = self._query("SELECT name FROM acl_aro WHERE type = 'user'")
-
-		if not result is None and len(result) != 0:
-			return [row[0] for row in result]
-		else:
-			return []
-
-	def get_groups(self):
-		result = self._query("SELECT name FROM acl_aro WHERE type = 'group'")
-
-		if not result is None and len(result) != 0:
-			return [row[0] for row in result]
-		else:
-			return []
+        result = self._query("SELECT aro_name_1 FROM acl_memberships WHERE aro_name_1 = ? AND aro_name_2 = ?", (username, groupname))
+        if not result is None:
+            if len(result) != 0:
+                raise Exception("User %s is already a member of %s" % (username, groupname))
+
+        if self._query("INSERT INTO acl_memberships (aro_name_1, aro_name_2) VALUES (?, ?)", (username, groupname)) is None:
+            raise Exception("Unable to add user to group")
+
+    def group_del_user(self, username, groupname):
+        if not self._user_exists(username):
+            raise Exception("No such user")
+
+        if not self._group_exists(groupname):
+            raise Exception("No such group")
+
+        result = self._query("SELECT aro_name_1 FROM acl_memberships WHERE aro_name_1 = ? AND aro_name_2 = ?", (username, groupname))
+        if not result is None:
+            if len(result) != 1:
+                raise Exception("User %s is not a member %s" % (username, groupname))
+
+        if self._query("DELETE FROM acl_memberships WHERE aro_name_1 = ? AND aro_name_2 = ?", (username, groupname)) is None:
+            raise Exception("Unable to remove user from group")
+
+    def access_allow(self, context, aro):
+        isGroup = self._group_exists(aro)
+        isUser  = self._user_exists(aro)
+        if not isGroup and not isUser:
+            raise Exception("No such user or group")
+
+        # Add context if it doesn't exist
+        context = context.lower()
+        self._query("INSERT INTO acl_aco (name) VALUES (?)", (context,))
+
+        # Clear any old access
+        self._query("DELETE FROM acl_access WHERE aro_name = ? AND aco_name = ?", (aro, context))
+
+        if self._query("INSERT INTO acl_access (aro_name, aco_name, access) VALUES (?, ?, 1)", (aro, context)) is None:
+            raise Exception("Unable to grant access")
+
+    def access_deny(self, context, aro):
+        isGroup = self._group_exists(aro)
+        isUser  = self._user_exists(aro)
+        if not isGroup and not isUser:
+            raise Exception("No such user or group")
+
+        # Add context if it doesn't exist
+        context = context.lower()
+        self._query("INSERT INTO acl_aco (name) VALUES (?)", (context,))
+
+        # Clear any old access
+        self._query("DELETE FROM acl_access WHERE aro_name = ? AND aco_name = ?", (aro, context))
+
+        if self._query("INSERT INTO acl_access (aro_name, aco_name, access) VALUES (?, ?, 0)", (aro, context)) is None:
+            raise Exception("Unable to deny access")
+
+    def access_remove(self, context, aro):
+        isGroup = self._group_exists(aro)
+        isUser  = self._user_exists(aro)
+        if not isGroup and not isUser:
+            raise Exception("No such user or group")
+
+        self._query("DELETE FROM acl_access WHERE aro_name = ? AND aco_name = ?", (aro, context))
+
+    def access_clear(self, context):
+        self._query("DELETE FROM acl_aco WHERE name = ?", (context.lower(),))
+
+    def get_user_info(self, username):
+        if not self._user_exists(username):
+            raise Exception("No such user")
+
+        info = {
+            "username": username,
+            "hostmasks": [],
+            "groups": [],
+            "access": []
+        }
+
+        # Get hostmasks
+        result = self._query("SELECT hostmask FROM user_hostmasks WHERE username = ?", (username, ))
+        if not result is None:
+            info["hostmasks"] = [row[0] for row in result]
+
+        # Get group memberships
+        result = self._query("SELECT groupname FROM user_groups WHERE username = ?", (username, ))
+        if not result is None:
+            info["groups"] = [row[0] for row in result]
+
+        # Get command access
+        result = self._query("SELECT aro_name, username, context FROM list_access WHERE username = ? OR aro_name = ? GROUP BY context", (username, username))
+        if not result is None:
+            for (access_aro, member_username, context) in result:
+                if member_username is None:
+                    info["access"].append((context, None))
+                else:
+                    info["access"].append((context, access_aro))
+
+        return info
+
+    def get_group_members(self, groupname):
+        result = self._query("SELECT aro_name_1 FROM acl_memberships WHERE aro_name_2 = ?", (groupname,))
+
+        if result is None or len(result) == 0:
+            raise Exception("No such group. Or group have no members.")
+        else:
+            return [row[0] for row in result]
+
+    def get_users(self):
+        result = self._query("SELECT name FROM acl_aro WHERE type = 'user'")
+
+        if not result is None and len(result) != 0:
+            return [row[0] for row in result]
+        else:
+            return []
+
+    def get_groups(self):
+        result = self._query("SELECT name FROM acl_aro WHERE type = 'group'")
+
+        if not result is None and len(result) != 0:
+            return [row[0] for row in result]
+        else:
+            return []

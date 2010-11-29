@@ -115,85 +115,85 @@ import threading
 ## 
 # Bot entrypoint
 class NeuBot:
-	"""NeuBot"""
-	def __init__(self):
-		self.eventcontroller   = EventController()
-		self.plugincontroller  = PluginController()
-		self.ircnetscontroller = IRCNetsController()
+    """NeuBot"""
+    def __init__(self):
+        self.eventcontroller   = EventController()
+        self.plugincontroller  = PluginController()
+        self.ircnetscontroller = IRCNetsController()
 
-		self.config = ConfigController()
-		self.config.reload()
+        self.config = ConfigController()
+        self.config.reload()
 
-		self.quit_event = threading.Event()
-		self.eventcontroller.register_system_event("BOT_QUIT", self.system_quit)
+        self.quit_event = threading.Event()
+        self.eventcontroller.register_system_event("BOT_QUIT", self.system_quit)
 
-	def system_quit(self, params):
-		self.quit_event.set()
+    def system_quit(self, params):
+        self.quit_event.set()
 
-	def start(self):
-		# Initialize data store
-		DatastoreController().set_driver(self.config.get('datastore'))
+    def start(self):
+        # Initialize data store
+        DatastoreController().set_driver(self.config.get('datastore'))
 
-		Logger.set_loglevel(self.config.get('log.level'))
+        Logger.set_loglevel(self.config.get('log.level'))
 
-		for plugin in self.config.get('coreplugins'):
-			Logger.info("Loading core plugin '%s'" % plugin)
-			self.plugincontroller.load_plugin(plugin, 'core')
+        for plugin in self.config.get('coreplugins'):
+            Logger.info("Loading core plugin '%s'" % plugin)
+            self.plugincontroller.load_plugin(plugin, 'core')
 
-		for plugin in self.config.get('plugins'):
-			Logger.info("Loading plugin '%s'" % plugin)
-			self.plugincontroller.load_plugin(plugin)
+        for plugin in self.config.get('plugins'):
+            Logger.info("Loading plugin '%s'" % plugin)
+            self.plugincontroller.load_plugin(plugin)
 
-		if len(self.config.get('ircnets')) == 0:
-			raise Exception("There has to be at least one ircnet to connect to")
+        if len(self.config.get('ircnets')) == 0:
+            raise Exception("There has to be at least one ircnet to connect to")
 
-		for net in self.config.get('ircnets'):
-			irc = IRCController(self.eventcontroller)
+        for net in self.config.get('ircnets'):
+            irc = IRCController(self.eventcontroller)
 
-			# Add channels
-			for (channel_name, channel_key) in net['channels']:
-				channel = Channel(channel_name, channel_key)
-				irc.channels.append(channel)
+            # Add channels
+            for (channel_name, channel_key) in net['channels']:
+                channel = Channel(channel_name, channel_key)
+                irc.channels.append(channel)
 
-			# Add servers
-			if len(net['servers']) == 0: 
-				raise Exception("There must be at least one server defined")
+            # Add servers
+            if len(net['servers']) == 0: 
+                raise Exception("There must be at least one server defined")
 
-			for (hostname, port, use_ssl, use_ipv6) in net['servers']:
-				server = Server(hostname, port, use_ssl, use_ipv6)
-				irc.servers.append(server)
+            for (hostname, port, use_ssl, use_ipv6) in net['servers']:
+                server = Server(hostname, port, use_ssl, use_ipv6)
+                irc.servers.append(server)
 
-			irc.ircnet   = net['ircnet']
-			irc.nick     = net['nick']
-			irc.altnicks = net['altnicks']
-			irc.name     = net['name']
-			irc.ident    = net['ident']
+            irc.ircnet   = net['ircnet']
+            irc.nick     = net['nick']
+            irc.altnicks = net['altnicks']
+            irc.name     = net['name']
+            irc.ident    = net['ident']
 
-			Logger.info("Connecting to %s..." % irc.ircnet)
-			irc.connect()
+            Logger.info("Connecting to %s..." % irc.ircnet)
+            irc.connect()
 
-			self.ircnetscontroller.add_ircnet(irc.ircnet, irc)
+            self.ircnetscontroller.add_ircnet(irc.ircnet, irc)
 
-	def stop(self):
-		self.ircnetscontroller.disconnect_all()
+    def stop(self):
+        self.ircnetscontroller.disconnect_all()
 
 if __name__ == "__main__":
-	bot = None
-	try:
-		Logger.info("Initializing...")
+    bot = None
+    try:
+        Logger.info("Initializing...")
 
-		bot = NeuBot()
-		bot.start()
+        bot = NeuBot()
+        bot.start()
 
-		while not bot.quit_event.isSet():
-			bot.quit_event.wait(1)
+        while not bot.quit_event.isSet():
+            bot.quit_event.wait(1)
 
-	except KeyboardInterrupt:
-		Logger.info("Keyboard interrupt detected. Shutting down.")
+    except KeyboardInterrupt:
+        Logger.info("Keyboard interrupt detected. Shutting down.")
 
-	except Exception as e:
-		Logger.fatal("Fatal error: %s" % e)
+    except Exception as e:
+        Logger.fatal("Fatal error: %s" % e)
 
-	finally:
-		if bot:
-			bot.stop()
+    finally:
+        if bot:
+            bot.stop()

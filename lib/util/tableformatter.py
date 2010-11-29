@@ -18,50 +18,50 @@
 # Copyright (c) 2007-2008, Jim Persson, All rights reserved.
 
 class TableFormatter:
-	def __init__(self, colums, header = ""):
-		self.columns = colums
-		self.data   = []
-		self.header = header
+    def __init__(self, colums, header = ""):
+        self.columns = colums
+        self.data   = []
+        self.header = header
 
-		self._columnSizes = []
-		for i in range(0, len(self.columns)):
-			self._columnSizes.append(len(self.columns[i]))
+        self._columnSizes = []
+        for i in range(0, len(self.columns)):
+            self._columnSizes.append(len(self.columns[i]))
 
-	def add_row(self, data):
-		if len(data) != len(self.columns):
-			raise Exception("Data of incorrect size")
+    def add_row(self, data):
+        if len(data) != len(self.columns):
+            raise Exception("Data of incorrect size")
 
-		# Calculate the new maximum column sizes
-		for i in range(0, len(data)):
-			if not data[i]:
-				data[i] = "-"
+        # Calculate the new maximum column sizes
+        for i in range(0, len(data)):
+            if not data[i]:
+                data[i] = "-"
 
-			if len(data[i]) > self._columnSizes[i]:
-				self._columnSizes[i] = len(data[i])
+            if len(data[i]) > self._columnSizes[i]:
+                self._columnSizes[i] = len(data[i])
 
-		self.data.append(data)
+        self.data.append(data)
 
-	def get_table(self, column_headers = True):
-		result = []
-		header = ""
+    def get_table(self, column_headers = True):
+        result = []
+        header = ""
 
-		if column_headers:
-			for i in range(0, len(self.columns)):
-				header = header + self.columns[i] + ' '*(self._columnSizes[i]-len(self.columns[i])+1)
+        if column_headers:
+            for i in range(0, len(self.columns)):
+                header = header + self.columns[i] + ' '*(self._columnSizes[i]-len(self.columns[i])+1)
 
-			result.append(header)
+            result.append(header)
 
-		if len(self.header) > 0:
-			result.append(self.header)
+        if len(self.header) > 0:
+            result.append(self.header)
 
-		if column_headers or len(self.header) > 0:
-			result.append('-'*(sum(self._columnSizes)+len(self._columnSizes)-1))
+        if column_headers or len(self.header) > 0:
+            result.append('-'*(sum(self._columnSizes)+len(self._columnSizes)-1))
 
-		for row in self.data:
-			rowStr = ""
-			for i in range(0, len(row)):
-				rowStr = rowStr + row[i] + ' '*(self._columnSizes[i]-len(row[i])+1)
+        for row in self.data:
+            rowStr = ""
+            for i in range(0, len(row)):
+                rowStr = rowStr + row[i] + ' '*(self._columnSizes[i]-len(row[i])+1)
 
-			result.append(rowStr)
+            result.append(rowStr)
 
-		return result
+        return result
