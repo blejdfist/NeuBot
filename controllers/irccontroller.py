@@ -19,12 +19,13 @@
 #
 # Copyright (c) 2010, Jim Persson, All rights reserved.
 
-from models import Channel, IRCMessage
+from models.channel import Channel
+from models.ircmessage import IRCMessage
 from controllers.usercontroller import UserController
 from controllers.configcontroller import ConfigController
 from lib.net.netsocket import AsyncBufferedNetSocket, ConnectionFailedException
 from lib.logger import Logger
-from lib.util import IRCCommandDispatcher
+from lib.util.irccommanddispatcher import IRCCommandDispatcher
 
 import ircdef
 import re

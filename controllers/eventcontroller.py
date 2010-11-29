@@ -21,8 +21,8 @@ from controllers.ircmessagecontroller import IRCMessageController
 from controllers.aclcontroller        import ACLController
 from controllers.configcontroller     import ConfigController
 
-from lib import Logger
-from lib.util import Singleton
+from lib.logger import Logger
+from lib.util.singleton import Singleton
 
 from models.arguments import Arguments
 

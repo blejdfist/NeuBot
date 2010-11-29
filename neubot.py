@@ -27,8 +27,8 @@ from controllers.ircnetscontroller import IRCNetsController
 
 from lib.logger import Logger
 
-from models import Channel
-from models import Server
+from models.channel import Channel
+from models.server import Server
 
 import threading
 
@@ -39,7 +39,7 @@ import threading
 #
 # Module skeleton
 # @code
-# from lib import Plugin
+# from lib.plugin import Plugin
 # class MyModule(Plugin):
 #     def __init__(self):
 #         self.name = "Skeleton Module"

@@ -20,7 +20,7 @@
 from lib.util.commandparser import CommandParser, CommandError
 from lib.util.tableformatter import TableFormatter
 
-from lib import Plugin
+from lib.plugin import Plugin
 
 from controllers.aclcontroller import ACLController
 

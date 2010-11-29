@@ -21,7 +21,7 @@
 
 import sys
 
-from lib.util import Singleton
+from lib.util.singleton import Singleton
 from lib.logger import Logger
 
 ##

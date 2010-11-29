@@ -1,5 +1,5 @@
-from lib import Plugin
-from lib import Logger
+from lib.plugin import Plugin
+from lib.logger import Logger
 from lib.thirdparty import scrapemark
 
 import re

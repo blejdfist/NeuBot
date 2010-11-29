@@ -19,8 +19,8 @@
 #
 # Copyright (c) 2010, Jim Persson, All rights reserved.
 
-from lib.db import Store
-from lib.util import Singleton
+from lib.db.store import Store
+from lib.util.singleton import Singleton
 
 ##
 # Tuple data store abstraction layer

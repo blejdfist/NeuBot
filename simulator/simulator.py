@@ -4,7 +4,8 @@ from controllers.plugincontroller import PluginController
 from controllers.ircnetscontroller import IRCNetsController
 from controllers.configcontroller import ConfigController
 
-from models import Channel, Server
+from models.channel import Channel
+from models.server import Server
 
 from fakesocket import FakeSocket
 from simulatedirccontroller import SimulatedIRCController

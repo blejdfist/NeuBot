@@ -1,4 +1,4 @@
-from lib import Plugin
+from lib.plugin import Plugin
 
 class NormalPlugin(Plugin):
     def __init__(self):

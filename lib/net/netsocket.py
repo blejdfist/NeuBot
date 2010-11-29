@@ -2,7 +2,7 @@ import socket
 import select
 import threading
 
-from lib import Logger
+from lib.logger import Logger
 
 _SSL_ENABLED = True
 

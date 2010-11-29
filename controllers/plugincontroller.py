@@ -25,9 +25,9 @@ import os
 import types
 import shutil
 
-from lib import Plugin
-from lib import Logger
-from lib.util import Singleton
+from lib.plugin import Plugin
+from lib.logger import Logger
+from lib.util.singleton import Singleton
 
 from controllers.datastorecontroller import DatastoreController
 from controllers.eventcontroller     import EventController

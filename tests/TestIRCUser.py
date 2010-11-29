@@ -1,6 +1,6 @@
 import unittest
 
-from models import IRCUser
+from models.ircuser import IRCUser
 
 class TestIRCUser(unittest.TestCase):
     def setUp(self):

@@ -4,7 +4,7 @@ import shutil
 
 from controllers.aclcontroller import ACLController
 from controllers.configcontroller import ConfigController
-from models import IRCUser
+from models.ircuser import IRCUser
 
 class TestACLController(unittest.TestCase):
     def setUp(self):

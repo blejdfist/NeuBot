@@ -1,4 +1,4 @@
-from lib import Plugin
+from lib.plugin import Plugin
 
 class PluginRaisesInInit(Plugin):
     def __init__(self):

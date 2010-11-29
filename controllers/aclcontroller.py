@@ -23,8 +23,8 @@ import sqlite3
 
 from controllers.configcontroller import ConfigController
 
-from lib import Logger
-from models import IRCUser
+from lib.logger import Logger
+from models.ircuser import IRCUser
 
 ## Access Control Lists - Controller
 class ACLController:

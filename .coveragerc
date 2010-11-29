@@ -1,0 +1,15 @@
+[run]
+branch=True
+cover_pylib=False
+
+[report]
+exclude_lines = 
+    def __repr__
+
+omit = 
+    /System
+    /Library
+    /usr
+    plugins/
+    lib/thirdparty
+    lib/db/drivers/y_serial

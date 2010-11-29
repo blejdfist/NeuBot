@@ -1,4 +1,4 @@
-from models import IRCUser
+from models.ircuser import IRCUser
 
 class UserController:
     def __init__(self):

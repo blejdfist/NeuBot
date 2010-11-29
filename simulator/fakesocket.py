@@ -1,4 +1,4 @@
-from lib import Logger
+from lib.logger import Logger
 
 import ircdef
 import re

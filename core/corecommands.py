@@ -1,6 +1,6 @@
-from lib import Plugin
-from lib import Logger
-from lib.util import TableFormatter
+from lib.plugin import Plugin
+from lib.logger import Logger
+from lib.util.tableformatter import TableFormatter
 
 from controllers.aclcontroller import ACLController
 from controllers.plugincontroller import PluginLoadError, PluginUnloadError

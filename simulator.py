@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-from simulator import Simulator
-from lib import Logger
+from simulator.simulator import Simulator
+from lib.logger import Logger
 from optparse import OptionParser
 import sys
 

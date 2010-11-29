@@ -19,7 +19,7 @@
 #
 # Copyright (c) 2010, Jim Persson, All rights reserved.
 
-from lib.util import Singleton
+from lib.util.singleton import Singleton
 
 ##
 # Contains the configuration
