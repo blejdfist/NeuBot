@@ -44,6 +44,9 @@ class IRCController:
 
 		self.config = ConfigController()
 
+		# Message entry count (used for priority queue ordering)
+		self._send_entry_count = 0
+
 		# Attributes
 		self.ircnet = None
 		self.channels = []
@@ -69,7 +72,10 @@ class IRCController:
 
 		# Last PONG
 		self.last_ping_pong_ts = 0
-		self.keepalive_thread_exit_event = None
+
+		# Thread events
+		self._keepalive_thread_exit_event = None
+		self._writer_thread_exit_event = None
 
 		# Register events
 		self.eventcontroller.register_event("PING",     self._event_ping)
@@ -328,22 +334,29 @@ class IRCController:
 		self.last_ping_pong_ts = time.time()
 
 		# Dispatch keepalive-thread
-		self.keepalive_thread_exit_event = threading.Event()
-		keepalive_thread = threading.Thread(target = self._thread_keepalive)
-		keepalive_thread.start()
+		self._keepalive_thread_exit_event = threading.Event()
+		self._keepalive_thread = threading.Thread(target = self._thread_keepalive)
+		self._keepalive_thread.start()
 
-		writer_thread = threading.Thread(target = self._thread_writer)
-		writer_thread.start()
+		# Dispatch writer-thread
+		self._writer_thread_exit_event = threading.Event()
+		self._writer_thread = threading.Thread(target = self._thread_writer)
+		self._writer_thread.start()
 
 	def _handle_disconnect(self, socket):
 		Logger.info("IRC connection closed")
 		self.connected = False
 
+		# Tear down keepalive-thread
+		self._keepalive_thread_exit_event.set()
+		self._keepalive_thread.join()
+
+		# Tear down writer-thread
+		self._writer_thread_exit_event.set()
+		self._writer_thread.join()
+
 		# Empty send queue
 		self.output_queue = Queue.PriorityQueue()
-
-		# Tear down keepalive-thread
-		self.keepalive_thread_exit_event.set()
 
 		# Flag all channels as not joined
 		for channel in self.channels:
@@ -360,23 +373,23 @@ class IRCController:
 	def _thread_writer(self):
 		rate = 0
 
-		while self.connected:
+		while self.is_connected() and not self._writer_thread_exit_event.is_set():
 			try:
 				while rate < self.config.get('irc.rate_limit_burst_max'):
-					_, data = self.output_queue.get(timeout=1.0)
+					_, _, data = self.output_queue.get(timeout=1.0)
 					Logger.debug3("SEND[%s]: %s" % (self.ircnet, data.strip(),))
 					self.connection.send(data)
 					self.output_queue.task_done()
 
 					rate += 1
 				else:
-					time.sleep(self.config.get('irc.rate_limit_wait_time'))
 					rate -= 1 if rate > 0 else 0
+					self._writer_thread_exit_event.wait(self.config.get('irc.rate_limit_wait_time'))
 
 			except Queue.Empty as e:
 				rate -= 1 if rate > 0 else 0
 
-		Logger.debug2("Writer thread exiting")
+		Logger.debug2("Writer thread stopping")
 
 	def join_all_channels(self):
 		for channel in self.channels:
@@ -393,7 +406,8 @@ class IRCController:
 		# Remove any newlines
 		data = data.replace('\n', '').replace('\r', '')
 
-		self.output_queue.put((priority, data + "\r\n"))
+		self._send_entry_count += 1
+		self.output_queue.put((priority, self._send_entry_count, data + "\r\n"))
 
 	def get_ircnet_name(self):
 		return self.ircnet
@@ -406,7 +420,7 @@ class IRCController:
 		pong_disconnect_time = self.config.get("irc.pong_disconnect_time")
 		pong_timeout = self.config.get("irc.pong_timeout")
 
-		while self.is_connected() and not self.keepalive_thread_exit_event.isSet():
+		while self.is_connected() and not self._keepalive_thread_exit_event.is_set():
 			time_since_ping_pong = time.time() - self.last_ping_pong_ts
 
 			if time_since_ping_pong > pong_disconnect_time:
@@ -417,7 +431,7 @@ class IRCController:
 				Logger.debug3("No PONG for %d seconds. Sending PING." % (time_since_ping_pong,))
 				self.ping_server()
 
-			self.keepalive_thread_exit_event.wait(10)
+			self._keepalive_thread_exit_event.wait(10)
 
 		Logger.debug("Keepalive-thread stopping")
 

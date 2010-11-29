@@ -1,2 +1,5 @@
 ircd
 *.pyc
+.*.swp
+doc
+build
