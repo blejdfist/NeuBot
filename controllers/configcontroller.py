@@ -79,3 +79,14 @@ class ConfigController(Singleton):
 			return self.config[key]
 
 		return None
+
+	##
+	# Set the value for a configuration option
+	# @warning This should not be used by plugins
+	#
+	# @param key Configuration option
+	# @param value Option value
+	def set(self, key, value):
+		self.config[key] = value
+
+		return None

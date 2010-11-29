@@ -28,6 +28,7 @@ class Simulator:
 
 		# Make sure the simulated user have access to all commands
 		ConfigController().get('masters').append('*!*@*')
+		ConfigController().set('irc.rate_limit_wait_time', 0)
 
 		irc = SimulatedIRCController(self.event, self.socket)
 
