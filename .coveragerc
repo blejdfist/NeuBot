@@ -11,5 +11,7 @@ omit =
     /Library
     /usr
     plugins/
+    test_plugins/
+    testreloadplugin.py
     lib/thirdparty
     lib/db/drivers/y_serial

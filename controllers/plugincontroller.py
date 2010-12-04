@@ -43,40 +43,46 @@ class PluginUnloadError(Exception):
 ##
 # Handler of loading/unloding plugins
 class PluginController(Singleton):
-    def construct(self):
-        self.loaded_plugins = {}
-        self.eventcontroller = EventController()
-        self.config = ConfigController()
+    def construct(self, eventcontroller = None, configcontroller = None):
+        self._loaded_plugins = {}
+
+        if eventcontroller:
+            self._eventcontroller = eventcontroller
+        else:
+            self._eventcontroller = EventController()
+
+        if configcontroller:
+            self._config = configcontroller
+        else:
+            self._config = ConfigController()
 
     ##
     # Unload all loaded plugins
     def unload_all(self):
-        for plugin in self.loaded_plugins.keys():
+        for plugin in self._loaded_plugins.keys():
             self.unload_plugin(plugin)
 
     ##
     # Reload a plugin by name
     # @note The plugin will be unloaded but not loaded again if it's in a non-standard path
-    def reload_plugin(self, name):
-        name = name.strip()
-
+    def reload_plugin(self, name, search_dir = None):
         try:
             self.unload_plugin(name)
         except:
             pass
 
-        return self.load_plugin(name)
+        return self.load_plugin(name, search_dir)
 
     def unload_plugin(self, name):
         name = name.strip().lower()
 
-        if not self.loaded_plugins.has_key(name):
+        if not self._loaded_plugins.has_key(name):
             raise PluginUnloadError("No such plugin loaded")
 
-        basename, instance, import_name = self.loaded_plugins[name]
+        basename, instance, import_name = self._loaded_plugins[name]
 
         # Release events related to this plugin
-        self.eventcontroller.release_related(instance)
+        self._eventcontroller.release_related(instance)
 
         # Try to call Cleanup if it exists
         try:
@@ -86,7 +92,7 @@ class PluginController(Singleton):
 
         # Delete instance
         del instance
-        del self.loaded_plugins[name]
+        del self._loaded_plugins[name]
 
         for module in sys.modules.keys():
             if module.startswith(import_name):
@@ -94,27 +100,34 @@ class PluginController(Singleton):
 
         return True
 
-    def find_plugin(self, name, search_dir):
+    ##
+    # Retrieve the names of all loaded plugins
+    def get_loaded_plugins(self):
+        return self._loaded_plugins.keys()
+
+    ##
+    # Generator for all candidate plugins
+    # This will search through the given directory (or the plugin_paths if not specified)
+    # and yield all candidate plugins in the form (path, name)
+    #
+    # @param search_dir Optional search directory. If not specified the plugin_paths from the
+    #                   configuration will be used
+    def plugin_candidates(self, search_dir = None):
         if search_dir:
             search_dirs = [search_dir]
         else:
-            search_dirs = self.config.get('plugin_paths')
+            search_dirs = self._config.get('plugin_paths')
 
-        ignore = shutil.ignore_patterns("*.pyc", "__init__.py")
-
-        Logger.debug2("Trying to find plugin %s" % name)
+        ignore = shutil.ignore_patterns("*.pyc", "__init__.py", ".*")
         for search_dir in search_dirs:
-            Logger.debug3("Searching path %s for plugin %s" % (search_dir, name))
             for root, dirs, files in os.walk(search_dir):
                 ignored_files = ignore(root, files)
-                files = filter(lambda x : x not in ignored_files, files)
+                files = [f for f in files if f not in ignored_files]
 
                 # Look for plugins contained in directories
                 for directory in dirs:
                     path = root + "." + directory
-                    if directory.lower() == name.lower():
-                        Logger.debug("Candidate plugin '%s'" % path)
-                        return path
+                    yield (root, directory)
 
                 # We don't want to recurse
                 dirs[:] = []
@@ -127,9 +140,20 @@ class PluginController(Singleton):
                 for filename in files:
                     base = filename.partition(".")[0]
                     path = root + "." + base
-                    if base.lower() == name.lower():
-                        Logger.debug("Candidate plugin '%s'" % path)
-                        return path
+                    yield (root, base)
+
+    ##
+    # Find a plugin by name
+    #
+    # @param name Name of the plugin to search for
+    # @param search_dir Optional search directory. If not specified the plugin_paths from the
+    #                   configuration will be used
+    def find_plugin(self, name, search_dir = None):
+        for path, candidate_name in self.plugin_candidates(search_dir):
+            if candidate_name.lower() == name.lower():
+                module_name = path + "." + candidate_name
+                Logger.debug("Candidate plugin '%s'" % module_name)
+                return module_name
 
     ##
     # Load a specified plugin
@@ -140,7 +164,7 @@ class PluginController(Singleton):
         name = name.strip()
         import_name = None
 
-        if self.loaded_plugins.has_key(name):
+        if self._loaded_plugins.has_key(name):
             raise PluginLoadError("Plugin is already loaded")
 
         import_name = self.find_plugin(name, search_dir)
@@ -153,7 +177,7 @@ class PluginController(Singleton):
         try:
             mod = __import__(import_name)
             cls = getattr(mod, basename)
-        except Exception, e:
+        except Exception as e:
             # Remove the system-entry
             if import_name and sys.modules.has_key(import_name):
                 del sys.modules[import_name]
@@ -170,13 +194,13 @@ class PluginController(Singleton):
 
                 # Initialize plugin instance
                 instance.store  = DatastoreController().get_store(basename)
-                instance.event  = self.eventcontroller
-                instance.config = self.config
+                instance.event  = self._eventcontroller
+                instance.config = self._config
                 instance.nets   = IRCNetsController()
                 instance.plugin = self
                 instance.__init__()
 
-                self.loaded_plugins[basename.lower()] = (basename, instance, import_name)
+                self._loaded_plugins[basename.lower()] = (basename, instance, import_name)
 
                 return True
 
