@@ -33,19 +33,19 @@ class Simulator:
         irc = SimulatedIRCController(self.event, self.socket)
 
         # Setup bot
-        irc.ircnet = "SimuNet"
-        irc.nick = self.bot_nick
-        irc.name = "The NeuBot"
-        irc.ident = self.bot_ident
+        irc._ircnet = "SimuNet"
+        irc._nick = self.bot_nick
+        irc._name = "The NeuBot"
+        irc._ident = self.bot_ident
 
         # Add fake server
-        irc.servers.append(Server(self.server_name, 6667))
+        irc.add_server(Server(self.server_name, 6667))
 
         # Register server with ircnetscontroller
         IRCNetsController().add_ircnet("SimuNet", irc)
 
         # Add fake channels
-        irc.channels.append(Channel('#simulator'))
+        irc.add_channel(Channel('#simulator'))
 
         self.irc = irc
 

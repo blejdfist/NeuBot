@@ -43,23 +43,23 @@ from controllers.irccontroller import IRCController
 
 class TestIRCController(unittest.TestCase):
     def setUp(self):
-        self.event_controller = FakeEventController()
+        self._event_controller = FakeEventController()
 
-        self._irc = IRCController(self.event_controller)
+        self._irc = IRCController(self._event_controller)
 
         # Setup IRCController
-        self._irc.servers.append(Server("foo", 6667))
-        self._irc.ircnet   = "FakeIRCNet"
-        self._irc.nick     = "Nick"
-        self._irc.name     = "Name"
-        self._irc.ident    = "Ident"
+        self._irc._servers.append(Server("foo", 6667))
+        self._irc._ircnet   = "FakeIRCNet"
+        self._irc._nick     = "Nick"
+        self._irc._name     = "Name"
+        self._irc._ident    = "Ident"
 
         # "connect"
         self._irc.connect()
 
         # Make sure the buffer is clear
         self._irc.flush_output()
-        self._irc.connection.clear()
+        self._irc._connection.clear()
 
     def tearDown(self):
         self._irc.disconnect()
@@ -78,7 +78,7 @@ class TestIRCController(unittest.TestCase):
             'PRIVMSG Foo :B\r\n',
         ]
 
-        self.assertEqual(self._irc.connection.get_data(), expected)
+        self.assertEqual(self._irc._connection.get_data(), expected)
 
     def testMessagePriorities(self):
         self._irc.privmsg("Foo", "B")
@@ -92,4 +92,4 @@ class TestIRCController(unittest.TestCase):
             'PRIVMSG Foo :A\r\n',
         ]
 
-        self.assertEqual(self._irc.connection.get_data(), expected)
+        self.assertEqual(self._irc._connection.get_data(), expected)

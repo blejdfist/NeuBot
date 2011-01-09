@@ -30,7 +30,7 @@ class IRCMessageController:
     # Reply to the message using a PRIVMSG
     # @param message Message
     def reply(self, message):
-        if self.server.nick == self.message.destination:
+        if self.server.get_current_nick() == self.message.destination:
             self.server.privmsg(self.message.source.nick, message)
         else:
             self.server.privmsg(self.message.destination, message)

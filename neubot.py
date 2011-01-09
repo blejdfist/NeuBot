@@ -153,7 +153,7 @@ class NeuBot:
             # Add channels
             for (channel_name, channel_key) in net['channels']:
                 channel = Channel(channel_name, channel_key)
-                irc.channels.append(channel)
+                irc.add_channel(channel)
 
             # Add servers
             if len(net['servers']) == 0: 
@@ -161,18 +161,19 @@ class NeuBot:
 
             for (hostname, port, use_ssl, use_ipv6) in net['servers']:
                 server = Server(hostname, port, use_ssl, use_ipv6)
-                irc.servers.append(server)
+                irc.add_server(server)
 
-            irc.ircnet   = net['ircnet']
-            irc.nick     = net['nick']
-            irc.altnicks = net['altnicks']
-            irc.name     = net['name']
-            irc.ident    = net['ident']
+            # @todo Create mutator methods for this
+            irc._ircnet   = net['ircnet']
+            irc._nick     = net['nick']
+            irc._altnicks = net['altnicks']
+            irc._name     = net['name']
+            irc._ident    = net['ident']
 
-            Logger.info("Connecting to %s..." % irc.ircnet)
+            Logger.info("Connecting to %s..." % irc.get_ircnet_name())
             irc.connect()
 
-            self.ircnetscontroller.add_ircnet(irc.ircnet, irc)
+            self.ircnetscontroller.add_ircnet(irc.get_ircnet_name(), irc)
 
     def stop(self):
         self.ircnetscontroller.disconnect_all()
