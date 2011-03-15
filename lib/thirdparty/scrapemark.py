@@ -8,7 +8,7 @@ import chardet
 from htmlentitydefs import name2codepoint
 
 verbose = False
-user_agent = 'Mozilla/5.0 (Windows; U; Windows NT 6.0; en-US; rv:1.8.1.3) Gecko/20070309 Firefox/2.0.0.3'
+user_agent = 'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; en-US; rv:1.9.2.15) Gecko/20110303 Firefox/3.6.15'
 
 # todo: throw invalid arguments error if neither html nor url ar given
 
