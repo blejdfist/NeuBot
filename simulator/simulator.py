@@ -66,6 +66,7 @@ class Simulator:
 
     def stop(self):
         self.irc.disconnect()
+        self.plugin.unload_all()
 
     ##
     # Wait for all dispatched event threads to complete

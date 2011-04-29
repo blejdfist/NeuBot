@@ -177,6 +177,7 @@ class NeuBot:
 
     def stop(self):
         self.ircnetscontroller.disconnect_all()
+        self.plugincontroller.unload_all()
 
 if __name__ == "__main__":
     bot = None
