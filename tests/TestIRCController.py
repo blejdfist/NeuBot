@@ -1,6 +1,11 @@
 import unittest
 
 from models.server import Server
+from models.channel import Channel
+
+from controllers.irccontroller import IRCController
+from controllers.eventcontroller import EventController
+from lib.net.ircnetworkclient import IRCNetworkClient
 
 class FakeEventController:
     def __init__(self):
@@ -15,15 +20,17 @@ class FakeEventController:
     def release_related(self, *args):
         pass
 
-class FakeSocket:
-    def __init__(self, *args):
+class IRCNetworkClientMock(IRCNetworkClient):
+    def __init__(self):
+        IRCNetworkClient.__init__(self)
+
         self._data_queue = []
 
-    def connect(self):
-        self.OnConnect(self)
+    def connect(self, *args, **kwargs):
+        self.handle_connected()
 
     def disconnect(self):
-        self.OnDisconnect(self)
+        self.handle_disconnected()
 
     def clear(self):
         self._data_queue = []
@@ -34,21 +41,16 @@ class FakeSocket:
     def send(self, data):
         self._data_queue.append(data)
 
-# Override socket class
-import lib.net.netsocket
-lib.net.netsocket.AsyncBufferedNetSocket = FakeSocket
-
-# Then load IRCController (this needs to be cleaned up)
-from controllers.irccontroller import IRCController
-
 class TestIRCController(unittest.TestCase):
     def setUp(self):
         self._event_controller = FakeEventController()
 
-        self._irc = IRCController(self._event_controller)
+        self._irc = IRCController(self._event_controller, clientclass = IRCNetworkClientMock)
 
         # Setup IRCController
-        self._irc._servers.append(Server("foo", 6667))
+        fakeserver = Server("foo", 6667)
+        self._irc.add_server(fakeserver)
+
         self._irc._ircnet   = "FakeIRCNet"
         self._irc._nick     = "Nick"
         self._irc._name     = "Name"

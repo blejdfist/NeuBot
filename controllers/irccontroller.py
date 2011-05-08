@@ -20,10 +20,11 @@
 # Copyright (c) 2010, Jim Persson, All rights reserved.
 
 from models.channel import Channel
-from models.ircmessage import IRCMessage
+from models.server import Server
 from controllers.usercontroller import UserController
 from controllers.configcontroller import ConfigController
-from lib.net.netsocket import AsyncBufferedNetSocket, ConnectionFailedException
+from lib.net.ircnetworkclient import IRCNetworkClient
+from lib.net.networkclientbase import NetworkClientError
 from lib.logger import Logger
 from lib.util.irccommanddispatcher import IRCCommandDispatcher
 
@@ -37,11 +38,12 @@ import Queue
 ##
 # Handles an IRC-connection
 class IRCController:
-    def __init__(self, eventcontroller):
+    def __init__(self, eventcontroller, clientclass = IRCNetworkClient):
         self._connected = False
         self._connection = None
         self._eventcontroller = eventcontroller
         self._usercontroller = UserController()
+        self._client_class = clientclass
 
         self._config = ConfigController()
 
@@ -93,6 +95,30 @@ class IRCController:
         self._eventcontroller.register_event(ircdef.RPL_NAMREPLY, self._event_channel_names)
         self._eventcontroller.register_event(ircdef.RPL_WHOREPLY, self._event_who_reply)
         self._eventcontroller.register_event(ircdef.RPL_MYINFO,   self._event_registration)
+
+    def set_configuration(self, config):
+        # Add channels
+        for (channel_name, channel_key) in config['channels']:
+            channel = Channel(channel_name, channel_key)
+            self.add_channel(channel)
+
+        # Add servers
+        if len(config['servers']) == 0:
+            raise Exception("There must be at least one server defined")
+
+        for (hostname, port, use_ssl, use_ipv6) in config['servers']:
+            server = Server(hostname, port, use_ssl, use_ipv6)
+            self.add_server(server)
+
+        # @todo Create mutator methods for this
+        self._ircnet   = config['ircnet']
+        self._nick     = config['nick']
+        self._altnicks = config['altnicks']
+        self._name     = config['name']
+        self._ident    = config['ident']
+
+    def get_connection(self):
+        return self._connection
 
     def _schedule_reclaimnick(self):
         # Schedule bot to rejoin channel
@@ -303,21 +329,10 @@ class IRCController:
         if self._currentnick != self._nick and self._config.get('irc.reclaim_nick_if_lost'):
             self._schedule_reclaimnick()
 
-    def _handle_data(self, line, socket):
-        try:
-            # The IRCMessage needs our usercontroller so that it
-            # can cache users that it sees in it
-            line = unicode(line, 'utf-8', 'ignore')
+    def _handle_data(self, message):
+        self._eventcontroller.dispatch_event(self, message)
 
-            Logger.debug3("RECV[%s]: %s" % (self._ircnet, line.strip()))
-
-            message = IRCMessage(line, self._usercontroller)
-            self._eventcontroller.dispatch_event(self, message)
-
-        except Exception as e:
-            Logger.warning("Exception: %s" % e)
-
-    def _handle_connect(self, socket):
+    def _handle_connect(self):
         self._connected = True
 
         self._currentnick = None
@@ -338,7 +353,7 @@ class IRCController:
         self._writer_thread = threading.Thread(target = self._thread_writer)
         self._writer_thread.start()
 
-    def _handle_disconnect(self, socket):
+    def _handle_disconnect(self):
         Logger.info("IRC connection closed")
         self._connected = False
 
@@ -442,16 +457,17 @@ class IRCController:
 
         Logger.info("%s: Connecting to %s..." % (self._ircnet, server))
 
-        self._connection = AsyncBufferedNetSocket(server.hostname, server.port, server.use_ssl, server.use_ipv6)
+        connection = self._client_class()
 
         # Setup callbacks
-        self._connection.OnConnect    = self._handle_connect
-        self._connection.OnDisconnect = self._handle_disconnect
-        self._connection.OnData       = self._handle_data
+        connection.set_handle_data_callback(self._handle_data)
+        connection.set_handle_connect_callback(self._handle_connect)
+        connection.set_handle_disconnect_callback(self._handle_disconnect)
 
         try:
-            self._connection.connect()
-        except ConnectionFailedException:
+            self._connection = connection
+            self._connection.connect(server.hostname, server.port, use_ssl = server.use_ssl, use_ipv6 = server.use_ipv6)
+        except NetworkClientError as e:
             # We failed to connect, schedule a retry
             reconnect_time = self._config.get('irc.reconnect_time')
             Logger.error("Failed to connect to %s (%s), retrying in %s seconds..." % (self._ircnet, server, reconnect_time))

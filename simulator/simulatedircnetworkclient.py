@@ -1,19 +1,20 @@
 from lib.logger import Logger
+from lib.net.ircnetworkclient import IRCNetworkClient
 
 import ircdef
 import re
 
-class FakeSocket:
-    def __init__(self, server_name, bot_nick, bot_ident, bot_host):
-        # Asynchronous callback methods
-        self.OnConnect    = None
-        self.OnDisconnect = None
-        self.OnData       = None
+class SimulatedIRCNetworkClient(IRCNetworkClient):
+    def __init__(self):
+        IRCNetworkClient.__init__(self)
 
-        self.server_name = server_name
-        self.bot_nick = bot_nick
-        self.bot_ident = bot_ident
-        self.bot_host = bot_host
+        # Bot nick and server name
+        # these settings much match what's being used
+        # in simulator.py
+        self.bot_nick = "NeuBot"
+        self.bot_ident = "neubot"
+        self.bot_host = "example.org"
+        self.server_name = "irc.example.org"
 
         self.sim_nick = "MrSim"
         self.sim_ident = "mrsim"
@@ -21,14 +22,14 @@ class FakeSocket:
 
     ##
     # Simulate raw data from the server
-    # 
+    #
     # @param data Raw data that seems to come from the server
     def server_raw(self, data):
-        self.OnData(data, self)
+        self.handle_data(data)
 
     ##
     # Simulate a server response and feed it into the bot
-    # 
+    #
     # @param code Numeric code or command
     # @param params Parameters to the code
     def server_response(self, code, params):
@@ -45,12 +46,12 @@ class FakeSocket:
         data = ":%s!%s@%s %s %s" % (self.sim_nick, self.sim_ident, self.sim_host, code, params)
         self.server_raw(data)
 
-    def connect(self):
-        self.OnConnect(self)
+    def connect(self, *args, **kwargs):
+        self.handle_connected()
         self.server_response(ircdef.RPL_MYINFO, "FakeIRC iowghraAsORTVSxNCWqBzvdHtGp lvhopsmntikrRcaqOALQ")
 
     def disconnect(self):
-        self.OnDisconnect(self)
+        self.handle_disconnected()
 
     def send(self, data):
         params = data.split()

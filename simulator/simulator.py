@@ -1,53 +1,46 @@
 from controllers.eventcontroller import EventController
+from controllers.irccontroller import IRCController
 from controllers.datastorecontroller import DatastoreController
 from controllers.plugincontroller import PluginController
 from controllers.ircnetscontroller import IRCNetsController
 from controllers.configcontroller import ConfigController
 
-from models.channel import Channel
-from models.server import Server
-
-from fakesocket import FakeSocket
-from simulatedirccontroller import SimulatedIRCController
-
-# Override socket class
-import lib.net.netsocket
-lib.net.netsocket.AsyncBufferedNetSocket = FakeSocket
+from simulatedircnetworkclient import SimulatedIRCNetworkClient
 
 class Simulator:
     def __init__(self):
-        self.bot_nick = "NeuBot"
-        self.bot_ident = "neubot"
-        self.bot_host = "example.org"
-
-        self.server_name = "irc.example.org"
-
         self.event = EventController()
         self.plugin = PluginController()
-        self.socket = FakeSocket(server_name = self.server_name, bot_nick = self.bot_nick, bot_ident = self.bot_ident, bot_host = self.bot_host)
 
         # Make sure the simulated user have access to all commands
         ConfigController().get('masters').append('*!*@*')
         ConfigController().set('irc.rate_limit_wait_time', 0)
 
-        irc = SimulatedIRCController(self.event, self.socket)
+        # Configuration
+        # This must match the values in SimulatedIRCNetworkClient
+        simulated_ircnet = {
+            "ircnet":    "SimuNet",
+            "nick":      "NeuBot",
+            "altnicks":  [],
+            "name":      "Simulated Bot",
+            "ident":     "neubot",
+            "servers": [
+                ("irc.example.org", 6667, False, False),
+            ],
+            "channels": [
+                ("#simulator", None),
+            ]
+        }
 
-        # Setup bot
-        irc._ircnet = "SimuNet"
-        irc._nick = self.bot_nick
-        irc._name = "The NeuBot"
-        irc._ident = self.bot_ident
-
-        # Add fake server
-        irc.add_server(Server(self.server_name, 6667))
+        # Initiate the IRCController and tell it to use our fake clientclass
+        # so that it won't actually connect to a real server
+        irc = IRCController(self.event, clientclass = SimulatedIRCNetworkClient)
+        irc.set_configuration(simulated_ircnet)
 
         # Register server with ircnetscontroller
-        IRCNetsController().add_ircnet("SimuNet", irc)
+        IRCNetsController().add_ircnet(irc.get_ircnet_name(), irc)
 
-        # Add fake channels
-        irc.add_channel(Channel('#simulator'))
-
-        self.irc = irc
+        self._irc = irc
 
         # Initialize datastore
         DatastoreController().set_driver("data/simulator.db")
@@ -56,16 +49,17 @@ class Simulator:
         self.plugin.load_plugin(name, search_dir)
 
     def feed_data(self, data):
-        self.socket.server_raw(data)
+        self._socket.server_raw(data)
 
     def msg_channel(self, message):
-        self.socket.server_user_response("PRIVMSG", "#simulator :" + message)
+        self._socket.server_user_response("PRIVMSG", "#simulator :" + message)
 
     def start(self):
-        self.irc.connect()
+        self._irc.connect()
+        self._socket = self._irc.get_connection()
 
     def stop(self):
-        self.irc.disconnect()
+        self._irc.disconnect()
         self.plugin.unload_all()
 
     ##
@@ -77,4 +71,4 @@ class Simulator:
     # Wait for all queued output to be sent to the server
     # (the simulated socket in this case)
     def flush(self):
-        self.irc.flush_output()
+        self._irc.flush_output()

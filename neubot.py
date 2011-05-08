@@ -27,9 +27,6 @@ from controllers.ircnetscontroller import IRCNetsController
 
 from lib.logger import Logger
 
-from models.channel import Channel
-from models.server import Server
-
 import threading
 
 ##
@@ -149,26 +146,7 @@ class NeuBot:
 
         for net in self.config.get('ircnets'):
             irc = IRCController(self.eventcontroller)
-
-            # Add channels
-            for (channel_name, channel_key) in net['channels']:
-                channel = Channel(channel_name, channel_key)
-                irc.add_channel(channel)
-
-            # Add servers
-            if len(net['servers']) == 0: 
-                raise Exception("There must be at least one server defined")
-
-            for (hostname, port, use_ssl, use_ipv6) in net['servers']:
-                server = Server(hostname, port, use_ssl, use_ipv6)
-                irc.add_server(server)
-
-            # @todo Create mutator methods for this
-            irc._ircnet   = net['ircnet']
-            irc._nick     = net['nick']
-            irc._altnicks = net['altnicks']
-            irc._name     = net['name']
-            irc._ident    = net['ident']
+            irc.set_configuration(net)
 
             Logger.info("Connecting to %s..." % irc.get_ircnet_name())
             irc.connect()
