@@ -45,6 +45,7 @@ class UrlCatcherPlugin(Plugin):
 
         # Reassemble the parts
         url = urlparse.urlunsplit(res)
+        self.event.dispatch_system_event('urlcatcherurl', [url, irc])
 
         Logger.info("Urlcatcher retrieving '%s'" % url)
         try:
